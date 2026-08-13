@@ -64,13 +64,13 @@
 </style>
 <style id="modern-redesign">
   :root {
-    --bg: #050506;
-    --panel: #101012;
-    --panel-border: #2a2a2f;
-    --text: #f5f5f6;
-    --muted: #8e8e96;
-    --accent: #ff3344;
-    --red: #ff3344;
+    --bg: #08090c;
+    --panel: #12151b;
+    --panel-border: #252a33;
+    --text: #f4f6fa;
+    --muted: #8d95a5;
+    --accent: #f23d4f;
+    --red: #f23d4f;
   }
   body {
     position: relative;
@@ -78,9 +78,9 @@
     overflow: hidden;
     padding: 20px;
     background:
-      radial-gradient(circle at 70% 10%, rgba(255,38,55,.2), transparent 30%),
-      radial-gradient(circle at 15% 85%, rgba(113,9,20,.17), transparent 32%),
-      #050506;
+      radial-gradient(circle at 70% 10%, rgba(242,61,79,.17), transparent 31%),
+      radial-gradient(circle at 15% 85%, rgba(113,24,37,.13), transparent 32%),
+      #08090c;
     font-family: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
   }
   body::before {
@@ -88,7 +88,7 @@
     position: fixed;
     inset: 0;
     z-index: -1;
-    opacity: .18;
+    opacity: .11;
     background-image:
       linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
@@ -100,9 +100,9 @@
     max-width: 390px;
     padding: 38px 36px 32px;
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: 24px;
-    background: linear-gradient(150deg, rgba(21,21,24,.97), rgba(8,8,10,.98));
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    background: linear-gradient(150deg, rgba(18,21,27,.98), rgba(8,9,12,.99));
     box-shadow: 0 30px 90px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.04);
     backdrop-filter: blur(22px);
   }
@@ -113,7 +113,7 @@
     right: 12%;
     top: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, #ff4251, transparent);
+    background: linear-gradient(90deg, transparent, var(--red), transparent);
   }
   .login-mark {
     position: relative;
@@ -123,21 +123,13 @@
     height: 56px;
     margin: 0 auto 20px;
     overflow: hidden;
-    border: 1px solid rgba(255,73,88,.55);
-    border-radius: 17px;
-    background: linear-gradient(145deg, #310b10, #0b0b0d 70%);
-    font-size: 21px;
-    font-weight: 900;
-    box-shadow: 0 0 38px rgba(255,38,55,.18);
+    border: 1px solid rgba(242,61,79,.48);
+    border-radius: 16px;
+    background: rgba(242,61,79,.12);
+    color: var(--red);
+    box-shadow: 0 0 34px rgba(242,61,79,.14), inset 0 1px 0 rgba(255,255,255,.04);
   }
-  .login-mark::after {
-    content: "";
-    position: absolute;
-    width: 70px;
-    height: 2px;
-    background: var(--red);
-    transform: rotate(-45deg);
-  }
+  .login-mark svg { width: 38px; height: 38px; }
   .eyebrow {
     margin-bottom: 5px;
     color: var(--red);
@@ -154,9 +146,9 @@
   input[type="password"] {
     height: 46px;
     margin-bottom: 14px;
-    border: 1px solid #303035;
+    border: 1px solid var(--panel-border);
     border-radius: 12px;
-    background: #080809;
+    background: #08090c;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
     transition: border-color .15s ease, box-shadow .15s ease;
   }
@@ -166,9 +158,9 @@
   }
   button {
     min-height: 46px;
-    border: 1px solid #ff5361;
+    border: 1px solid #f45a69;
     border-radius: 12px;
-    background: linear-gradient(180deg, #ff4050, #d71526);
+    background: linear-gradient(180deg, #f34a5b, #c92638);
     color: #fff;
     box-shadow: 0 10px 28px rgba(215,21,38,.24), inset 0 1px 0 rgba(255,255,255,.2);
     transition: transform .15s ease, filter .15s ease;
@@ -183,7 +175,13 @@
 </head>
 <body>
 <form id="login-form">
-  <div class="login-mark">Л</div>
+  <div class="login-mark" aria-hidden="true">
+    <svg viewBox="0 0 48 48">
+      <path d="M8 12c4 1 7 4 9 8M40 12c-4 1-7 4-9 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M16 22c2-5 5-8 8-8s6 3 8 8v8c0 6-3 10-8 10s-8-4-8-10z" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M21 27v7m6-10v10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+  </div>
   <div class="eyebrow">Автоматическая торговая система</div>
   <h1>ЛЯЛЯ <span>БОТ</span></h1>
   <p class="sub">Авторизация в панели управления торговым контуром</p>

@@ -290,21 +290,21 @@
 </style>
 <style id="modern-redesign">
   :root {
-    --bg: #050506;
-    --panel: rgba(15, 15, 17, .94);
-    --panel-solid: #0f0f11;
-    --panel-soft: #151518;
-    --panel-border: #29292e;
-    --line: #29292e;
-    --text: #f6f6f7;
-    --muted: #8f8f98;
-    --accent: #ff3344;
-    --accent-dim: #8f1520;
-    --red: #ff3344;
-    --red-dark: #b70f1d;
+    --bg: #08090c;
+    --panel: rgba(18, 21, 27, .96);
+    --panel-solid: #12151b;
+    --panel-soft: #181c23;
+    --panel-border: #252a33;
+    --line: #252a33;
+    --text: #f4f6fa;
+    --muted: #8d95a5;
+    --accent: #f23d4f;
+    --accent-dim: #851d29;
+    --red: #f23d4f;
+    --red-dark: #bb2233;
     --blue: #e8e8eb;
-    --success: #35d39a;
-    --radius: 18px;
+    --success: #3ddc97;
+    --radius: 16px;
   }
   html { scroll-behavior: smooth; scroll-padding-top: 118px; }
   * { scrollbar-width: thin; scrollbar-color: #54131a #09090a; }
@@ -314,9 +314,9 @@
     padding: 0 28px 48px;
     overflow-x: hidden;
     background:
-      radial-gradient(circle at 85% -10%, rgba(255, 36, 55, .18), transparent 32%),
-      radial-gradient(circle at -10% 28%, rgba(139, 10, 24, .13), transparent 30%),
-      linear-gradient(180deg, #070708 0%, #040405 100%);
+      radial-gradient(circle at 88% -14%, rgba(242, 61, 79, .16), transparent 34%),
+      radial-gradient(circle at -10% 30%, rgba(124, 24, 37, .11), transparent 30%),
+      linear-gradient(180deg, #0b0d11 0%, #07080b 100%);
     color: var(--text);
     font-family: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
   }
@@ -326,7 +326,7 @@
     inset: 0;
     z-index: -2;
     pointer-events: none;
-    opacity: .15;
+    opacity: .11;
     background-image:
       linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
@@ -342,7 +342,7 @@
     top: 30%;
     z-index: -1;
     border-radius: 50%;
-    background: rgba(255, 32, 50, .11);
+    background: rgba(242, 61, 79, .10);
     filter: blur(90px);
     pointer-events: none;
   }
@@ -360,9 +360,9 @@
     margin-bottom: 14px;
     padding: 14px 16px;
     align-items: center;
-    border: 1px solid rgba(255,255,255,.085);
-    border-radius: 22px;
-    background: rgba(9, 9, 10, .8);
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    background: rgba(8, 9, 12, .88);
     box-shadow: 0 20px 60px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.035);
     backdrop-filter: blur(22px);
   }
@@ -374,22 +374,13 @@
     width: 46px;
     height: 46px;
     overflow: hidden;
-    border: 1px solid rgba(255,73,88,.55);
-    border-radius: 14px;
-    background: linear-gradient(145deg, #2b0a0e, #0d0d0f 70%);
-    color: #fff;
-    font-size: 18px;
-    font-weight: 900;
-    box-shadow: 0 0 28px rgba(255,38,55,.15);
+    border: 1px solid rgba(242,61,79,.48);
+    border-radius: 13px;
+    background: rgba(242,61,79,.12);
+    color: var(--red);
+    box-shadow: 0 0 26px rgba(242,61,79,.12), inset 0 1px 0 rgba(255,255,255,.04);
   }
-  .brand-mark::after {
-    content: "";
-    position: absolute;
-    width: 54px;
-    height: 2px;
-    background: var(--red);
-    transform: rotate(-45deg);
-  }
+  .brand-mark svg { width: 31px; height: 31px; }
   .brand-copy h1 { font-size: 20px; letter-spacing: -.03em; }
   .brand-copy h1 span { color: var(--red); }
   .eyebrow {
@@ -427,7 +418,7 @@
     position: relative;
     overflow: hidden;
     border: 1px solid var(--panel-border);
-    background: linear-gradient(145deg, rgba(20,20,23,.95), rgba(10,10,12,.96));
+    background: linear-gradient(145deg, rgba(18,21,27,.98), rgba(10,12,16,.98));
     box-shadow: 0 16px 44px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.025);
   }
   .card::before, section.panel::before {
@@ -474,9 +465,9 @@
     letter-spacing: -.01em;
   }
   input[type="number"], input[type="text"], input[type="password"], select, textarea {
-    border: 1px solid #2d2d32;
+    border: 1px solid var(--panel-border);
     border-radius: 11px;
-    background: #09090a;
+    background: #08090c;
     color: #f3f3f5;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
     transition: border-color .15s ease, box-shadow .15s ease;
@@ -488,9 +479,9 @@
   }
   button {
     min-height: 39px;
-    border: 1px solid #ff4b59;
+    border: 1px solid #f45a69;
     border-radius: 11px;
-    background: linear-gradient(180deg, #ff4050, #d91425);
+    background: linear-gradient(180deg, #f34a5b, #c92638);
     color: #fff;
     box-shadow: 0 8px 20px rgba(214,17,33,.2), inset 0 1px 0 rgba(255,255,255,.2);
     transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
@@ -580,7 +571,7 @@
     padding: 14px;
     border: 1px solid var(--panel-border);
     border-radius: 20px;
-    background: rgba(10, 10, 12, .88);
+    background: rgba(13, 15, 20, .92);
     box-shadow: 0 18px 48px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.025);
     backdrop-filter: blur(18px);
   }
@@ -687,7 +678,13 @@
 
 <header>
   <div class="brand">
-    <div class="brand-mark">Л</div>
+  <div class="brand-mark" aria-hidden="true">
+    <svg viewBox="0 0 48 48">
+      <path d="M8 12c4 1 7 4 9 8M40 12c-4 1-7 4-9 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M16 22c2-5 5-8 8-8s6 3 8 8v8c0 6-3 10-8 10s-8-4-8-10z" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M21 27v7m6-10v10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+  </div>
     <div class="brand-copy">
       <div class="eyebrow">Автоматическая торговая система</div>
       <h1>ЛЯЛЯ <span>БОТ</span></h1>
