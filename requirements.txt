@@ -1,0 +1,4 @@
+aiogram==3.30.0
+aiohttp==3.14.3
+pybit==5.17.0
+Telethon==1.44.0

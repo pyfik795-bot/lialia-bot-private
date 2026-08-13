@@ -1,0 +1,62 @@
+name: lialia-bot
+
+services:
+  mtproxy:
+    image: lialia-mtproxy:portable
+    build:
+      context: .
+      dockerfile: Dockerfile.mtproxy
+    container_name: lialia-mtproxy
+    restart: unless-stopped
+    environment:
+      SECRET: ${MTPROXY_SECRET:?Run prepare-docker.ps1 first}
+      WORKERS: "2"
+    volumes:
+      - mtproxy-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - lialia-internal
+
+  app:
+    image: lialia-bot:portable
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lialia-bot
+    restart: unless-stopped
+    init: true
+    depends_on:
+      mtproxy:
+        condition: service_healthy
+    environment:
+      TELEGRAM_PROXY_ENABLED: "1"
+      TELEGRAM_PROXY_ADDRESS: mtproxy
+      TELEGRAM_PROXY_PORT: "443"
+      TELEGRAM_PROXY_SECRET: ${MTPROXY_SECRET:?Run prepare-docker.ps1 first}
+      TZ: ${TZ:-Europe/Moscow}
+    ports:
+      - "127.0.0.1:${LIALIA_WEB_PORT:-8080}:8080"
+    volumes:
+      # Рабочая папка хранит Telegram-сессию, JSON-состояние и логи.
+      - ./:/data
+      # Секреты не входят в Docker-образ и подключаются только при запуске.
+      - ./config.py:/app/config.py:ro
+    working_dir: /data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - lialia-internal
+
+networks:
+  lialia-internal:
+    driver: bridge
+
+volumes:
+  mtproxy-data:

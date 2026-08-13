@@ -1,0 +1,47 @@
+# Local secrets and Telegram authorization
+config.py
+*.session
+*.session-journal
+
+# Virtual environments and IDE metadata
+.venv/
+venv/
+.idea/
+.claude/
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs and runtime state
+logs/
+*.log
+log.json
+active_trades.json
+authorized_chats.json
+channels.json
+parsers.json
+settings.json
+risk.json
+parsed_signals.json
+processed_signals.json
+risk_state.json
+trade_history.json
+
+# Test and tooling caches
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker-local secrets and offline bundles
+.env
+docker-images.tar
+*.docker.tar
+portable-export/

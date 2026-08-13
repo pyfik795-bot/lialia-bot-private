@@ -1,0 +1,1827 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ляля Бот</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel-border: #262c36;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #3ecf8e;
+    --accent-dim: #1f6f4f;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(circle at top left, #131a24, var(--bg) 60%);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+    padding: 32px;
+    min-height: 100vh;
+  }
+  h1 { font-size: 22px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+  .badge.demo { background: rgba(88,166,255,.12); color: var(--blue); border: 1px solid rgba(88,166,255,.3); }
+  .badge.real { background: rgba(248,81,73,.12); color: var(--red); border: 1px solid rgba(248,81,73,.3); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.25);
+  }
+  .card h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .status-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+  .dot.on { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .dot.off { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  .metric { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric.pnl-pos { color: var(--accent); }
+  .metric.pnl-neg { color: var(--red); }
+  .metric-label { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  section.panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 24px;
+  }
+  section.panel h2 {
+    font-size: 15px;
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  form#settings-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+    align-items: end;
+  }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  input[type="number"], input[type="text"] {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="number"]:focus, input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  button {
+    background: var(--accent);
+    color: #05130d;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: filter .15s;
+  }
+  button:hover { filter: brightness(1.08); }
+  #settings-msg, #channel-msg { font-size: 13px; margin-top: 12px; min-height: 18px; }
+  #settings-msg.ok, #channel-msg.ok { color: var(--accent); }
+  #settings-msg.err, #channel-msg.err { color: var(--red); }
+
+  .ghost-btn {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .ghost-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  .toggle-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 14px;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .toggle-btn.on { background: rgba(62,207,142,.14); color: var(--accent); border-color: rgba(62,207,142,.4); }
+  .toggle-btn.off { background: rgba(248,81,73,.14); color: var(--red); border-color: rgba(248,81,73,.4); }
+
+  .channel-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--panel-border);
+    font-size: 14px;
+    gap: 10px;
+  }
+  .channel-row:last-child { border-bottom: none; }
+  .channel-name { font-weight: 600; }
+  .channel-sub { color: var(--muted); font-size: 12px; }
+  .channel-actions { display: flex; gap: 8px; align-items: center; }
+  .switch { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider {
+    position: absolute; inset: 0; background: #30363d; border-radius: 999px;
+    cursor: pointer; transition: background .15s;
+  }
+  .switch .slider::before {
+    content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px;
+    background: #e6edf3; border-radius: 50%; transition: transform .15s;
+  }
+  .switch input:checked + .slider { background: var(--accent-dim); }
+  .switch input:checked + .slider::before { transform: translateX(16px); background: var(--accent); }
+  .icon-btn {
+    background: transparent; border: none; color: var(--muted); cursor: pointer;
+    font-size: 15px; padding: 4px 6px; border-radius: 6px;
+  }
+  .icon-btn:hover { color: var(--red); background: rgba(248,81,73,.1); }
+  #add-channel-form { display: flex; gap: 10px; margin-top: 14px; }
+  #add-channel-form input { flex: 1; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--panel-border); }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .04em; }
+  tr:last-child td { border-bottom: none; }
+  .side-long { color: var(--accent); font-weight: 600; }
+  .side-short { color: var(--red); font-weight: 600; }
+  .empty-row td { color: var(--muted); text-align: center; padding: 24px; }
+  .tp-pips { display: flex; gap: 4px; }
+  .pip { width: 9px; height: 9px; border-radius: 2px; background: #30363d; }
+  .pip.hit { background: var(--accent); }
+
+  select {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  select:focus { outline: none; border-color: var(--accent); }
+  textarea {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 13px;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    resize: vertical;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  .msg { font-size: 13px; margin-top: 12px; min-height: 18px; white-space: pre-wrap; }
+  .msg.ok { color: var(--accent); }
+  .msg.err { color: var(--red); }
+
+  .danger-btn {
+    background: rgba(248,81,73,.14);
+    color: var(--red);
+    border: 1px solid rgba(248,81,73,.45);
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .danger-btn:hover { background: rgba(248,81,73,.25); }
+
+  .risk-banner {
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    border: 1px solid transparent;
+  }
+  .risk-banner.ok { background: rgba(62,207,142,.1); color: var(--accent); border-color: rgba(62,207,142,.3); }
+  .risk-banner.blocked { background: rgba(248,81,73,.1); color: var(--red); border-color: rgba(248,81,73,.35); }
+  .risk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    align-items: end;
+  }
+  .limit-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .limit-head input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+  .limit-head label { margin: 0; cursor: pointer; }
+  .row-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; align-items: center; }
+
+  .parser-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+  }
+  .parser-fields input[type="text"] { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.5; }
+  .channel-parser { min-width: 150px; }
+
+  /* Разбивка объёма по тейкам - своя у каждого формата сигналов */
+  .split-card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .split-head {
+    display: flex; align-items: baseline; gap: 10px;
+    flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .split-head h3 { margin: 0; font-size: 15px; }
+  .split-head .split-sub { color: var(--muted); font-size: 12px; }
+  .split-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .split-tp { width: 92px; }
+  .split-tp label { font-size: 12px; margin-bottom: 4px; }
+  .split-tp input { width: 100%; }
+  .split-total { font-size: 13px; font-weight: 600; margin-top: 12px; }
+  .split-total.ok { color: var(--accent); }
+  .split-total.bad { color: var(--red); }
+
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 32px; }
+</style>
+<style id="modern-redesign">
+  :root {
+    --bg: #050506;
+    --panel: rgba(15, 15, 17, .94);
+    --panel-solid: #0f0f11;
+    --panel-soft: #151518;
+    --panel-border: #29292e;
+    --line: #29292e;
+    --text: #f6f6f7;
+    --muted: #8f8f98;
+    --accent: #ff3344;
+    --accent-dim: #8f1520;
+    --red: #ff3344;
+    --red-dark: #b70f1d;
+    --blue: #e8e8eb;
+    --success: #35d39a;
+    --radius: 18px;
+  }
+  html { scroll-behavior: smooth; scroll-padding-top: 118px; }
+  * { scrollbar-width: thin; scrollbar-color: #54131a #09090a; }
+  body {
+    position: relative;
+    isolation: isolate;
+    padding: 0 28px 48px;
+    overflow-x: hidden;
+    background:
+      radial-gradient(circle at 85% -10%, rgba(255, 36, 55, .18), transparent 32%),
+      radial-gradient(circle at -10% 28%, rgba(139, 10, 24, .13), transparent 30%),
+      linear-gradient(180deg, #070708 0%, #040405 100%);
+    color: var(--text);
+    font-family: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    opacity: .15;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, black, transparent 88%);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    width: 380px;
+    height: 380px;
+    right: -210px;
+    top: 30%;
+    z-index: -1;
+    border-radius: 50%;
+    background: rgba(255, 32, 50, .11);
+    filter: blur(90px);
+    pointer-events: none;
+  }
+  header, .quick-nav, body > .grid, body > section, footer {
+    width: min(100%, 1480px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  header {
+    position: sticky;
+    top: 14px;
+    z-index: 30;
+    min-height: 78px;
+    margin-top: 14px;
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    align-items: center;
+    border: 1px solid rgba(255,255,255,.085);
+    border-radius: 22px;
+    background: rgba(9, 9, 10, .8);
+    box-shadow: 0 20px 60px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.035);
+    backdrop-filter: blur(22px);
+  }
+  .brand { display: flex; align-items: center; gap: 13px; }
+  .brand-mark {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    overflow: hidden;
+    border: 1px solid rgba(255,73,88,.55);
+    border-radius: 14px;
+    background: linear-gradient(145deg, #2b0a0e, #0d0d0f 70%);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 900;
+    box-shadow: 0 0 28px rgba(255,38,55,.15);
+  }
+  .brand-mark::after {
+    content: "";
+    position: absolute;
+    width: 54px;
+    height: 2px;
+    background: var(--red);
+    transform: rotate(-45deg);
+  }
+  .brand-copy h1 { font-size: 20px; letter-spacing: -.03em; }
+  .brand-copy h1 span { color: var(--red); }
+  .eyebrow {
+    margin-bottom: 2px;
+    color: var(--red);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+  }
+  .header-actions { display: flex; align-items: center; gap: 10px; }
+  .quick-nav {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    padding: 2px 2px 8px;
+    overflow-x: auto;
+  }
+  .quick-nav a {
+    flex: 0 0 auto;
+    padding: 8px 13px;
+    border: 1px solid #252529;
+    border-radius: 999px;
+    background: rgba(14,14,16,.72);
+    color: #a7a7ae;
+    font-size: 12px;
+    font-weight: 650;
+    text-decoration: none;
+    transition: .18s ease;
+  }
+  .quick-nav a:hover { color: #fff; border-color: rgba(255,51,68,.58); background: rgba(255,51,68,.09); }
+  .grid { gap: 13px; margin-bottom: 18px; }
+  .overview-grid { grid-template-columns: repeat(5, minmax(190px, 1fr)); }
+  .card, section.panel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+    background: linear-gradient(145deg, rgba(20,20,23,.95), rgba(10,10,12,.96));
+    box-shadow: 0 16px 44px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.025);
+  }
+  .card::before, section.panel::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,51,68,.5), transparent);
+    opacity: .45;
+  }
+  .card {
+    min-height: 130px;
+    padding: 18px;
+    border-radius: 17px;
+    transition: transform .18s ease, border-color .18s ease;
+  }
+  .card:hover { transform: translateY(-2px); border-color: #38383e; }
+  .card h2 {
+    margin-bottom: 16px;
+    color: #92929b;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: .13em;
+  }
+  .metric { font-size: clamp(22px, 2vw, 30px); font-weight: 760; letter-spacing: -.035em; }
+  .metric.pnl-pos { color: var(--success); }
+  .metric.pnl-neg, .mode-live { color: var(--red); }
+  .mode-demo { color: #fff; }
+  .metric-label { line-height: 1.45; }
+  .dot { width: 8px; height: 8px; }
+  .dot.on { background: var(--success); box-shadow: 0 0 10px rgba(53,211,154,.65); }
+  .dot.off { background: var(--red); box-shadow: 0 0 10px rgba(255,51,68,.7); }
+  section.panel {
+    margin-bottom: 16px;
+    padding: 24px;
+    border-radius: 20px;
+  }
+  section.panel h2 {
+    margin-bottom: 20px;
+    font-size: 16px;
+    font-weight: 720;
+    letter-spacing: -.01em;
+  }
+  input[type="number"], input[type="text"], input[type="password"], select, textarea {
+    border: 1px solid #2d2d32;
+    border-radius: 11px;
+    background: #09090a;
+    color: #f3f3f5;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input[type="number"]:focus, input[type="text"]:focus, input[type="password"]:focus,
+  select:focus, textarea:focus {
+    border-color: rgba(255,51,68,.75);
+    box-shadow: 0 0 0 3px rgba(255,51,68,.1);
+  }
+  button {
+    min-height: 39px;
+    border: 1px solid #ff4b59;
+    border-radius: 11px;
+    background: linear-gradient(180deg, #ff4050, #d91425);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(214,17,33,.2), inset 0 1px 0 rgba(255,255,255,.2);
+    transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
+  }
+  button:hover { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 10px 26px rgba(214,17,33,.28); }
+  button:active { transform: translateY(0); }
+  .ghost-btn {
+    min-height: auto;
+    border-color: #303035;
+    background: rgba(255,255,255,.02);
+    color: #aaaab2;
+    box-shadow: none;
+  }
+  .ghost-btn:hover { color: #fff; border-color: #55555d; background: rgba(255,255,255,.045); box-shadow: none; }
+  .danger-btn { border-color: #ff4655; background: rgba(255,38,55,.13); color: #ff6270; box-shadow: none; }
+  .danger-btn:hover { background: rgba(255,38,55,.22); }
+  .icon-btn {
+    min-height: auto;
+    border: 0;
+    background: transparent;
+    color: #898991;
+    box-shadow: none;
+  }
+  .icon-btn:hover { background: rgba(255,51,68,.09); color: #ff6270; box-shadow: none; }
+  .toggle-btn.on { border-color: rgba(53,211,154,.4); background: rgba(53,211,154,.1); color: var(--success); box-shadow: none; }
+  .toggle-btn.off { border-color: rgba(255,51,68,.45); background: rgba(255,51,68,.11); color: #ff6673; box-shadow: none; }
+  .badge { padding: 7px 12px; font-size: 10px; letter-spacing: .1em; }
+  .badge.demo { border-color: #3c3c42; background: #17171a; color: #f1f1f3; }
+  .badge.real { border-color: rgba(255,51,68,.48); background: rgba(255,51,68,.11); color: #ff6673; }
+  .risk-banner { border-radius: 12px; }
+  .risk-banner.ok { border-color: rgba(53,211,154,.28); background: rgba(53,211,154,.075); color: var(--success); }
+  .risk-banner.blocked { border-color: rgba(255,51,68,.35); background: rgba(255,51,68,.09); color: #ff6673; }
+  .msg.ok, #settings-msg.ok, #channel-msg.ok, .split-total.ok { color: var(--success); }
+  .msg.err, #settings-msg.err, #channel-msg.err, .split-total.bad { color: #ff6270; }
+  .limit-head input[type="checkbox"] { accent-color: var(--red); }
+  .switch input:checked + .slider { background: #8d1721; }
+  .switch input:checked + .slider::before { background: #ff5967; }
+  .channel-row { padding: 13px 2px; }
+  .split-card { border-color: #2b2b30; border-radius: 14px; background: rgba(255,255,255,.012); }
+  table { min-width: 720px; }
+  th { color: #777780; padding-top: 6px; }
+  td { padding-top: 13px; padding-bottom: 13px; }
+  th, td { border-color: #26262a; }
+  .side-long { color: var(--success); }
+  .side-short { color: #ff5d6b; }
+  .pip { background: #303035; border-radius: 999px; }
+  .pip.hit { background: var(--red); box-shadow: 0 0 8px rgba(255,51,68,.5); }
+  footer { padding: 18px; color: #686870; letter-spacing: .03em; }
+  @media (max-width: 1220px) {
+    .overview-grid { grid-template-columns: repeat(3, minmax(190px, 1fr)); }
+  }
+  @media (max-width: 760px) {
+    body { padding: 0 14px 32px; }
+    header { top: 8px; margin-top: 8px; border-radius: 17px; }
+    .brand-mark { width: 40px; height: 40px; }
+    .brand-copy h1 { font-size: 17px; }
+    .brand-copy .sub { display: none; }
+    .eyebrow { font-size: 8px; }
+    .header-actions { width: 100%; justify-content: space-between; }
+    .overview-grid, .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card { min-height: 118px; padding: 15px; }
+    .metric { font-size: 21px; }
+    section.panel { padding: 18px 16px; border-radius: 16px; overflow-x: auto; }
+    #add-channel-form { flex-direction: column; }
+  }
+  @media (max-width: 470px) {
+    .overview-grid, .grid { grid-template-columns: 1fr; }
+    .card { min-height: 104px; }
+    .brand-copy h1 { font-size: 15px; }
+    .header-actions { gap: 6px; }
+    .badge { padding: 6px 9px; }
+  }
+
+  /* Тематические экраны и боковая навигация */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr);
+    gap: 18px;
+    width: min(100%, 1480px);
+    margin: 0 auto;
+    align-items: start;
+  }
+  .sidebar {
+    position: sticky;
+    top: 110px;
+    z-index: 20;
+    padding: 14px;
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    background: rgba(10, 10, 12, .88);
+    box-shadow: 0 18px 48px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.025);
+    backdrop-filter: blur(18px);
+  }
+  .sidebar-title {
+    padding: 6px 10px 12px;
+    color: #66666f;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+  .side-nav-item {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 10px;
+    width: 100%;
+    min-height: 56px;
+    margin-bottom: 5px;
+    padding: 9px 10px;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    background: transparent;
+    color: #96969e;
+    box-shadow: none;
+    text-align: left;
+  }
+  .side-nav-item:hover {
+    transform: none;
+    border-color: #2b2b30;
+    background: rgba(255,255,255,.025);
+    box-shadow: none;
+  }
+  .side-nav-item.active {
+    border-color: rgba(255,51,68,.34);
+    background: linear-gradient(90deg, rgba(255,51,68,.14), rgba(255,51,68,.035));
+    color: #fff;
+    box-shadow: inset 3px 0 0 var(--red);
+  }
+  .side-icon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: #17171a;
+    font-size: 15px;
+  }
+  .side-nav-item.active .side-icon { background: rgba(255,51,68,.16); }
+  .side-copy strong { display: block; margin-top: 1px; color: inherit; font-size: 13px; }
+  .side-copy small { display: block; margin-top: 3px; color: #66666f; font-size: 10px; font-weight: 500; }
+  .workspace { min-width: 0; }
+  .workspace-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 72px;
+    margin-bottom: 14px;
+    padding: 2px 4px 15px;
+    border-bottom: 1px solid #202024;
+  }
+  .workspace-kicker { color: var(--red); font-size: 9px; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
+  .workspace-head h2 { margin: 4px 0 0; font-size: 25px; letter-spacing: -.035em; }
+  .workspace-description { max-width: 520px; color: #777780; font-size: 12px; line-height: 1.55; text-align: right; }
+  .workspace-page { display: none; }
+  .workspace-page.active { display: block; animation: page-in .2s ease both; }
+  .workspace-page > .grid, .workspace-page > section { width: 100%; }
+  .workspace-page > section:last-child { margin-bottom: 0; }
+  .workspace footer { width: 100%; margin-top: 14px; }
+  @keyframes page-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+  @media (max-width: 900px) {
+    .app-shell { grid-template-columns: 1fr; gap: 12px; }
+    .sidebar {
+      top: 104px;
+      display: flex;
+      gap: 7px;
+      padding: 8px;
+      overflow-x: auto;
+      border-radius: 16px;
+    }
+    .sidebar-title { display: none; }
+    .side-nav-item {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      width: auto;
+      min-height: 44px;
+      margin: 0;
+      padding: 6px 11px 6px 7px;
+    }
+    .side-icon { width: 30px; height: 30px; }
+    .side-copy small { display: none; }
+    .workspace-head { min-height: 60px; }
+  }
+  @media (max-width: 620px) {
+    .workspace-head { display: block; }
+    .workspace-description { margin-top: 7px; text-align: left; }
+    .workspace-head h2 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">Л</div>
+    <div class="brand-copy">
+      <div class="eyebrow">Автоматическая торговая система</div>
+      <h1>ЛЯЛЯ <span>БОТ</span></h1>
+      <div class="sub">каналов подключено: <span id="channels-count">—</span></div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="badge real" id="mode-badge">REAL MONEY</span>
+    <button type="button" id="logout-btn" class="ghost-btn">Выйти</button>
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Разделы панели">
+    <div class="sidebar-title">Разделы</div>
+    <button type="button" class="side-nav-item active" data-page="overview">
+      <span class="side-icon">⌂</span><span class="side-copy"><strong>Обзор</strong><small>Счёт и состояние</small></span>
+    </button>
+    <button type="button" class="side-nav-item" data-page="trades">
+      <span class="side-icon">↗</span><span class="side-copy"><strong>Сделки</strong><small>Позиции и история</small></span>
+    </button>
+    <button type="button" class="side-nav-item" data-page="risk">
+      <span class="side-icon">◇</span><span class="side-copy"><strong>Риск</strong><small>Защита капитала</small></span>
+    </button>
+    <button type="button" class="side-nav-item" data-page="settings">
+      <span class="side-icon">⚙</span><span class="side-copy"><strong>Параметры</strong><small>Маржа и тейки</small></span>
+    </button>
+    <button type="button" class="side-nav-item" data-page="channels">
+      <span class="side-icon">◉</span><span class="side-copy"><strong>Каналы</strong><small>Источники сигналов</small></span>
+    </button>
+    <button type="button" class="side-nav-item" data-page="parsers">
+      <span class="side-icon">{ }</span><span class="side-copy"><strong>Парсеры</strong><small>Форматы сообщений</small></span>
+    </button>
+  </aside>
+  <main class="workspace">
+    <div class="workspace-head">
+      <div><div class="workspace-kicker">Ляля Бот</div><h2 id="workspace-title">Обзор</h2></div>
+      <div class="workspace-description" id="workspace-description">Ключевые показатели счёта и состояние подключений в реальном времени.</div>
+    </div>
+    <div id="workspace-pages"></div>
+  </main>
+</div>
+
+<div class="grid overview-grid" id="overview">
+  <div class="card">
+    <h2>Состояние</h2>
+    <div class="status-row"><span><span class="dot off" id="dot-telethon"></span>Telegram</span></div>
+    <div class="status-row"><span><span class="dot off" id="dot-bybit"></span>Bybit</span></div>
+    <div class="status-row"><span style="color:var(--muted)">Аптайм</span><span id="uptime">—</span></div>
+  </div>
+  <div class="card">
+    <h2>Время сервера Bybit</h2>
+    <div class="metric" id="server-clock" style="font-size:22px">—</div>
+    <div class="metric-label" id="time-offset">расхождение: —</div>
+    <button type="button" id="sync-time-btn" class="ghost-btn" style="margin-top:10px;width:100%">🔄 Обновить время</button>
+  </div>
+  <div class="card">
+    <h2>Торговля</h2>
+    <button type="button" id="trading-toggle" class="toggle-btn">…</button>
+    <div class="metric-label" style="margin-top:10px">пауза не влияет на уже открытые сделки</div>
+  </div>
+  <div class="card">
+    <h2>Режим</h2>
+    <div class="metric mode-live" id="mode-value">REAL MONEY</div>
+    <div class="metric-label" id="mode-description">боевой торговый контур</div>
+  </div>
+  <div class="card">
+    <h2>Equity</h2>
+    <div class="metric" id="bal-equity">—</div>
+    <div class="metric-label">USDT</div>
+  </div>
+  <div class="card">
+    <h2>Доступно</h2>
+    <div class="metric" id="bal-available">—</div>
+    <div class="metric-label">USDT</div>
+  </div>
+  <div class="card">
+    <h2>Нереализ. PnL</h2>
+    <div class="metric" id="bal-pnl">—</div>
+    <div class="metric-label">USDT</div>
+  </div>
+  <div class="card">
+    <h2>Реализ. PnL всего</h2>
+    <div class="metric" id="stat-pnl">—</div>
+    <div class="metric-label">USDT</div>
+  </div>
+  <div class="card">
+    <h2>Win rate</h2>
+    <div class="metric" id="stat-winrate">—</div>
+    <div class="metric-label" id="stat-trades">сделок: —</div>
+  </div>
+</div>
+
+<section class="panel" id="settings">
+  <h2>⚙️ Торговые параметры</h2>
+  <form id="settings-form">
+    <div>
+      <label for="margin">Маржа на сделку (USDT)</label>
+      <input type="number" id="margin" step="0.1" min="0.1" required>
+    </div>
+    <div>
+      <label for="leverage">Плечо (x)</label>
+      <input type="number" id="leverage" step="1" min="1" max="100" required>
+    </div>
+    <div><button type="submit">Сохранить</button></div>
+  </form>
+  <div class="hint">
+    Разбивка объёма по тейкам — ниже, в разделе «🎯 Разбивка объёма по тейкам»:
+    она задаётся отдельно для каждого формата сигналов, потому что тейков у
+    каналов разное количество (четыре, шесть), и одной жёсткой четвёркой их
+    не накрыть.
+  </div>
+  <div id="settings-msg"></div>
+</section>
+
+<section class="panel" id="channels">
+  <h2>📡 Каналы-источники сигналов</h2>
+  <div id="channels-list"><div class="channel-sub">Загрузка…</div></div>
+  <form id="add-channel-form">
+    <input type="text" id="channel-identifier" placeholder="username канала, ссылка t.me/... или ID" required>
+    <button type="submit">Добавить</button>
+  </form>
+  <div id="channel-msg"></div>
+</section>
+
+<section class="panel" id="risk">
+  <h2>🛡 Защита от слива</h2>
+  <div class="risk-banner ok" id="risk-banner">Загрузка…</div>
+
+  <div class="grid" style="margin-bottom:18px">
+    <div class="card">
+      <h2>PnL за 24 часа</h2>
+      <div class="metric" id="risk-daily-pnl">—</div>
+      <div class="metric-label">USDT, закрыто сделок: <span id="risk-closed-today">—</span></div>
+    </div>
+    <div class="card">
+      <h2>Убыточных подряд</h2>
+      <div class="metric" id="risk-streak">—</div>
+      <div class="metric-label">сбрасывается прибыльной сделкой</div>
+    </div>
+  </div>
+
+  <form id="risk-form">
+    <div class="risk-grid">
+      <div>
+        <div class="limit-head">
+          <input type="checkbox" id="risk-open-enabled">
+          <label for="risk-open-enabled">Одновременных сделок</label>
+        </div>
+        <input type="number" id="risk-open" step="1" min="1" max="50">
+      </div>
+      <div>
+        <div class="limit-head">
+          <input type="checkbox" id="risk-pct-enabled">
+          <label for="risk-pct-enabled">Убыток за сутки, % баланса</label>
+        </div>
+        <input type="number" id="risk-pct" step="0.5" min="0.5" max="100">
+      </div>
+      <div>
+        <div class="limit-head">
+          <input type="checkbox" id="risk-usdt-enabled">
+          <label for="risk-usdt-enabled">Убыток за сутки, USDT</label>
+        </div>
+        <input type="number" id="risk-usdt" step="1" min="1">
+      </div>
+      <div>
+        <div class="limit-head">
+          <input type="checkbox" id="risk-streak-enabled">
+          <label for="risk-streak-enabled">Убыточных сделок подряд</label>
+        </div>
+        <input type="number" id="risk-streak-limit" step="1" min="1" max="50">
+      </div>
+      <div>
+        <label for="risk-cooldown">Пауза после срабатывания (часов)</label>
+        <input type="number" id="risk-cooldown" step="1" min="1" max="168">
+      </div>
+    </div>
+    <div class="hint">
+      Галочка слева включает лимит. При срабатывании любого из них новые сигналы
+      игнорируются на время паузы — уже открытые сделки продолжают работать и
+      закрываются штатно по TP/SL.
+    </div>
+    <div class="row-actions">
+      <button type="submit">Сохранить лимиты</button>
+      <button type="button" class="ghost-btn" id="risk-unblock-btn">Снять блокировку</button>
+      <button type="button" class="danger-btn" id="emergency-stop-btn">🛑 Стоп всё — закрыть позиции</button>
+    </div>
+  </form>
+  <div class="msg" id="risk-msg"></div>
+</section>
+
+<section class="panel" id="parsers">
+  <h2>🧩 Форматы сообщений (парсеры)</h2>
+  <div class="hint" style="margin-top:0;margin-bottom:14px">
+    Формат сигнала задаётся регулярными выражениями, а не зашит в код. Из каждого
+    выражения берётся первая группа захвата — то, что в скобках ( ). Тейк-профитов
+    выражение должно находить от 2 до 10: у разных каналов их разное количество.
+    Канал можно привязать к конкретному формату в списке выше; без привязки
+    перебираются все по очереди.
+  </div>
+
+  <div style="max-width:320px;margin-bottom:16px">
+    <label for="parser-select">Редактировать формат</label>
+    <select id="parser-select"></select>
+  </div>
+
+  <form id="parser-form">
+    <div class="parser-fields">
+      <div>
+        <label for="p-name">Имя (латиницей, без пробелов)</label>
+        <input type="text" id="p-name" required>
+      </div>
+      <div>
+        <label for="p-title">Название для списка</label>
+        <input type="text" id="p-title">
+      </div>
+      <div>
+        <label for="p-prefilter">Отсев не-сигналов (подстрока, можно пусто)</label>
+        <input type="text" id="p-prefilter">
+      </div>
+      <div>
+        <label for="p-symbol">Монета (symbol) *</label>
+        <input type="text" id="p-symbol" required>
+      </div>
+      <div>
+        <label for="p-side">Направление Long/Short (side) *</label>
+        <input type="text" id="p-side" required>
+      </div>
+      <div>
+        <label for="p-sl">Стоп-лосс (stop_loss) *</label>
+        <input type="text" id="p-sl" required>
+      </div>
+      <div>
+        <label for="p-targets">Тейк-профиты — от 2 до 10 совпадений *</label>
+        <input type="text" id="p-targets" required>
+      </div>
+      <div>
+        <label for="p-signal-id">ID сигнала (для защиты от дублей)</label>
+        <input type="text" id="p-signal-id">
+      </div>
+      <div>
+        <label for="p-entry-zone">Зона входа — справочно, 2 группы</label>
+        <input type="text" id="p-entry-zone">
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <label for="p-sample">Пример сообщения из канала — для проверки</label>
+      <textarea id="p-sample" rows="7" placeholder="Вставьте сюда реальное сообщение из канала и нажмите «Тестировать»"></textarea>
+    </div>
+
+    <div class="row-actions">
+      <button type="button" class="ghost-btn" id="parser-test-btn">Тестировать</button>
+      <button type="submit">Сохранить формат</button>
+      <button type="button" class="ghost-btn" id="parser-new-btn">+ Новый формат</button>
+      <button type="button" class="icon-btn" id="parser-delete-btn" title="Удалить формат">✕ Удалить</button>
+    </div>
+  </form>
+  <div class="msg" id="parser-msg"></div>
+</section>
+
+<section class="panel" id="allocation">
+  <h2>🎯 Разбивка объёма по тейкам</h2>
+  <div class="hint" style="margin-top:0;margin-bottom:14px">
+    Какую долю позиции закрывать на каждом тейк-профите — отдельно для каждого
+    формата сигналов, потому что тейков у каналов разное количество.
+    Сумма долей должна быть 100%. Число полей задаётся кнопками «тейк» и должно
+    совпадать с тем, сколько тейков реально приходит в сообщении.
+    Изменения применяются к новым сделкам; уже открытые считаются по старой разбивке.
+  </div>
+  <div id="splits-list"><div class="channel-sub">Загрузка…</div></div>
+  <div class="msg" id="splits-msg"></div>
+</section>
+
+<section class="panel" id="positions">
+  <h2>📈 Активные сделки</h2>
+  <table>
+    <thead><tr><th>Символ</th><th>Сторона</th><th>Вход</th><th>SL</th><th>TP</th><th>Открыта</th></tr></thead>
+    <tbody id="active-body"><tr class="empty-row"><td colspan="6">Загрузка…</td></tr></tbody>
+  </table>
+</section>
+
+<section class="panel" id="history">
+  <h2>📜 История сделок</h2>
+  <table>
+    <thead><tr><th>Символ</th><th>Сторона</th><th>Вход</th><th>Причина закрытия</th><th>Закрыта</th></tr></thead>
+    <tbody id="history-body"><tr class="empty-row"><td colspan="5">Загрузка…</td></tr></tbody>
+  </table>
+</section>
+
+<footer>ЛЯЛЯ БОТ · данные обновляются автоматически каждые 5 секунд</footer>
+
+<script>
+const WORKSPACE_PAGES = {
+  overview: {
+    title: "Обзор",
+    description: "Ключевые показатели счёта и состояние подключений в реальном времени.",
+    nodes: ["overview"],
+  },
+  trades: {
+    title: "Сделки",
+    description: "Открытые позиции, исполненные цели и история завершённых сделок.",
+    nodes: ["positions", "history"],
+  },
+  risk: {
+    title: "Управление риском",
+    description: "Лимиты потерь, серии сделок и аварийные инструменты защиты капитала.",
+    nodes: ["risk"],
+  },
+  settings: {
+    title: "Торговые параметры",
+    description: "Маржа, плечо и распределение объёма позиции между тейк-профитами.",
+    nodes: ["settings", "allocation"],
+  },
+  channels: {
+    title: "Каналы сигналов",
+    description: "Подключённые Telegram-источники и назначенные им форматы сообщений.",
+    nodes: ["channels"],
+  },
+  parsers: {
+    title: "Парсеры сообщений",
+    description: "Создание, проверка и настройка форматов входящих торговых сигналов.",
+    nodes: ["parsers"],
+  },
+};
+
+function buildWorkspace() {
+  const root = document.getElementById("workspace-pages");
+  Object.entries(WORKSPACE_PAGES).forEach(([name, page]) => {
+    const container = document.createElement("div");
+    container.className = "workspace-page";
+    container.dataset.workspacePage = name;
+    page.nodes.forEach(id => {
+      const node = document.getElementById(id);
+      if (node) container.appendChild(node);
+    });
+    root.appendChild(container);
+  });
+
+  const footer = document.querySelector("body > footer");
+  if (footer) document.querySelector(".workspace").appendChild(footer);
+}
+
+function showWorkspacePage(name, updateHash = true) {
+  if (!WORKSPACE_PAGES[name]) name = "overview";
+  document.querySelectorAll(".workspace-page").forEach(page => {
+    page.classList.toggle("active", page.dataset.workspacePage === name);
+  });
+  document.querySelectorAll(".side-nav-item").forEach(button => {
+    button.classList.toggle("active", button.dataset.page === name);
+  });
+  document.getElementById("workspace-title").textContent = WORKSPACE_PAGES[name].title;
+  document.getElementById("workspace-description").textContent = WORKSPACE_PAGES[name].description;
+  if (updateHash) history.replaceState(null, "", `#${name}`);
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+
+buildWorkspace();
+document.querySelectorAll(".side-nav-item").forEach(button => {
+  button.addEventListener("click", () => showWorkspacePage(button.dataset.page));
+});
+showWorkspacePage(location.hash.slice(1) || "overview", false);
+
+const fmt = (n, d = 2) => (typeof n === "number" ? n.toFixed(d) : "—");
+
+async function getJSON(url, opts) {
+  const res = await fetch(url, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+let serverTimeOffsetMs = null; // локальное время (мс) - серверное время
+
+async function refreshStatus() {
+  try {
+    const s = await getJSON("/api/status");
+    document.getElementById("dot-telethon").className = "dot " + (s.telethon_connected ? "on" : "off");
+    document.getElementById("dot-bybit").className = "dot " + (s.bybit_ws_connected ? "on" : "off");
+    const h = Math.floor(s.uptime_seconds / 3600);
+    const m = Math.floor((s.uptime_seconds % 3600) / 60);
+    const sec = s.uptime_seconds % 60;
+    document.getElementById("uptime").textContent = `${h}ч ${m}м ${sec}с`;
+
+    const badge = document.getElementById("mode-badge");
+    badge.textContent = s.demo ? "DEMO" : "REAL MONEY";
+    badge.className = "badge " + (s.demo ? "demo" : "real");
+    const modeValue = document.getElementById("mode-value");
+    modeValue.textContent = s.demo ? "DEMO" : "REAL MONEY";
+    modeValue.className = "metric " + (s.demo ? "mode-demo" : "mode-live");
+    document.getElementById("mode-description").textContent = s.demo
+      ? "без риска для реальных средств"
+      : "боевой торговый контур";
+
+    if (typeof s.server_time_ms === "number") {
+      serverTimeOffsetMs = s.server_time_ms - Date.now();
+    }
+    const offMs = s.time_offset_ms;
+    const ageSec = s.time_sync_age_sec;
+    document.getElementById("time-offset").textContent =
+      typeof offMs !== "number" ? "расхождение: —"
+        : `расхождение с локальными часами: ${offMs} мс`
+          + (typeof ageSec === "number" ? ` · сверка ${Math.round(ageSec)} с назад` : "");
+  } catch (e) { console.error(e); }
+}
+
+function tickClock() {
+  if (serverTimeOffsetMs === null) return;
+  const now = new Date(Date.now() + serverTimeOffsetMs);
+  document.getElementById("server-clock").textContent = now.toLocaleString("ru-RU", { hour12: false });
+}
+
+async function refreshBalance() {
+  try {
+    const b = await getJSON("/api/balance");
+    document.getElementById("bal-equity").textContent = fmt(b.equity);
+    document.getElementById("bal-available").textContent = fmt(b.available_balance);
+    const pnlEl = document.getElementById("bal-pnl");
+    pnlEl.textContent = fmt(b.unrealised_pnl);
+    pnlEl.className = "metric " + (b.unrealised_pnl >= 0 ? "pnl-pos" : "pnl-neg");
+  } catch (e) {
+    document.getElementById("bal-equity").textContent = "н/д";
+  }
+}
+
+function sideLabel(side) {
+  return side === "Buy"
+    ? '<span class="side-long">Long 📈</span>'
+    : '<span class="side-short">Short 📉</span>';
+}
+
+function tpPips(filled, total) {
+  filled = filled || [];
+  // число тейков зависит от канала: у одних 4, у других 6
+  total = total || 4;
+  let html = '<div class="tp-pips">';
+  for (let i = 1; i <= total; i++) {
+    html += `<span class="pip ${filled.includes(i) ? "hit" : ""}" title="TP${i}"></span>`;
+  }
+  return html + "</div>";
+}
+
+async function refreshTrades() {
+  try {
+    const t = await getJSON("/api/trades");
+    const activeBody = document.getElementById("active-body");
+    if (!t.active.length) {
+      activeBody.innerHTML = '<tr class="empty-row"><td colspan="6">Сейчас нет открытых сделок</td></tr>';
+    } else {
+      activeBody.innerHTML = t.active.map(tr => `
+        <tr>
+          <td>${tr.symbol}</td>
+          <td>${sideLabel(tr.side)}</td>
+          <td>${tr.entry_price ?? "—"}</td>
+          <td>${tr.current_sl ?? "—"}</td>
+          <td>${tpPips(tr.tp_filled, (tr.targets || []).length)}</td>
+          <td>${tr.opened_at ?? "—"}</td>
+        </tr>`).join("");
+    }
+
+    const historyBody = document.getElementById("history-body");
+    if (!t.history.length) {
+      historyBody.innerHTML = '<tr class="empty-row"><td colspan="5">Пока пусто</td></tr>';
+    } else {
+      historyBody.innerHTML = t.history.map(tr => `
+        <tr>
+          <td>${tr.symbol}</td>
+          <td>${sideLabel(tr.side)}</td>
+          <td>${tr.entry_price ?? "—"}</td>
+          <td>${tr.close_reason ?? "—"}</td>
+          <td>${tr.closed_at ?? "—"}</td>
+        </tr>`).join("");
+    }
+
+    const st = t.stats;
+    document.getElementById("stat-pnl").textContent =
+      st.total_realized_pnl === null ? "—" : fmt(st.total_realized_pnl);
+    document.getElementById("stat-winrate").textContent =
+      st.win_rate === null ? "—" : st.win_rate + "%";
+    document.getElementById("stat-trades").textContent =
+      `сделок: ${st.total_trades}` + (st.trades_with_pnl ? ` (${st.wins}/${st.trades_with_pnl} в плюс)` : "");
+  } catch (e) { console.error(e); }
+}
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, ch => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]
+  ));
+}
+
+// Список каналов перерисовывается по таймеру. Раньше это ломало клики: строка
+// пересобиралась прямо под курсором, а переключатель откатывался на старое
+// состояние сервера. Теперь перерисовка пропускается, пока пользователь
+// работает с блоком, и только если разметка реально изменилась.
+let channelsBusy = false;
+let lastChannelsHtml = "";
+
+async function refreshChannels() {
+  try {
+    const [list, parserList] = await Promise.all([
+      getJSON("/api/channels"),
+      getJSON("/api/parsers").catch(() => []),
+    ]);
+    document.getElementById("channels-count").textContent = list.length;
+
+    const box = document.getElementById("channels-list");
+    if (channelsBusy || box.contains(document.activeElement)) return;
+
+    if (!list.length) {
+      const empty = '<div class="channel-sub">Каналы ещё не добавлены</div>';
+      if (box.innerHTML !== empty) box.innerHTML = empty;
+      lastChannelsHtml = empty;
+      return;
+    }
+
+    const html = list.map(c => {
+      const options = ['<option value="">— любой формат —</option>']
+        .concat(parserList.map(p =>
+          `<option value="${escapeHtml(p.name)}" ${c.parser === p.name ? "selected" : ""}>${escapeHtml(p.title || p.name)}</option>`
+        )).join("");
+      return `
+      <div class="channel-row" data-chat-id="${c.chat_id}">
+        <div>
+          <div class="channel-name">${escapeHtml(c.title)}</div>
+          <div class="channel-sub">${c.username ? "@" + escapeHtml(c.username) : "id " + c.chat_id}</div>
+        </div>
+        <div class="channel-actions">
+          <select class="channel-parser" data-action="parser">${options}</select>
+          <label class="switch">
+            <input type="checkbox" data-action="toggle" ${c.enabled ? "checked" : ""}>
+            <span class="slider"></span>
+          </label>
+          <button type="button" class="icon-btn" data-action="delete" title="Удалить">✕</button>
+        </div>
+      </div>`;
+    }).join("");
+
+    if (html !== lastChannelsHtml) {
+      box.innerHTML = html;
+      lastChannelsHtml = html;
+    }
+  } catch (e) { console.error(e); }
+}
+
+// Делегирование: обработчики висят на контейнере, а не на строках. Раньше они
+// были в inline onclick/onchange — и переставали работать целиком, если выше
+// по скрипту падала любая ошибка.
+const channelsBox = document.getElementById("channels-list");
+
+channelsBox.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest('[data-action="delete"]');
+  if (!btn) return;
+  const chatId = btn.closest(".channel-row").dataset.chatId;
+  if (!confirm("Удалить канал из списка источников?")) return;
+  channelsBusy = true;
+  try {
+    await getJSON(`/api/channels/${chatId}`, { method: "DELETE" });
+    lastChannelsHtml = "";
+  } catch (e) {
+    alert("Ошибка: " + e.message);
+  } finally {
+    channelsBusy = false;
+    refreshChannels();
+  }
+});
+
+channelsBox.addEventListener("change", async (ev) => {
+  const row = ev.target.closest(".channel-row");
+  if (!row) return;
+  const chatId = row.dataset.chatId;
+  const action = ev.target.dataset.action;
+  channelsBusy = true;
+  try {
+    if (action === "toggle") {
+      await getJSON(`/api/channels/${chatId}/toggle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: ev.target.checked }),
+      });
+    } else if (action === "parser") {
+      await getJSON(`/api/channels/${chatId}/parser`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parser: ev.target.value || null }),
+      });
+    } else {
+      return;
+    }
+    lastChannelsHtml = "";
+  } catch (e) {
+    alert("Ошибка: " + e.message);
+    lastChannelsHtml = "";
+    refreshChannels();
+  } finally {
+    channelsBusy = false;
+  }
+});
+
+document.getElementById("add-channel-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const input = document.getElementById("channel-identifier");
+  const msg = document.getElementById("channel-msg");
+  msg.textContent = "Добавляю…";
+  msg.className = "";
+  try {
+    await getJSON("/api/channels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: input.value.trim() }),
+    });
+    msg.textContent = "✅ Канал добавлен";
+    msg.className = "ok";
+    input.value = "";
+    lastChannelsHtml = "";
+    refreshChannels();
+  } catch (e) {
+    msg.textContent = "❌ " + e.message;
+    msg.className = "err";
+  }
+});
+
+let tradingEnabled = true;
+
+function renderTradingToggle() {
+  const btn = document.getElementById("trading-toggle");
+  btn.className = "toggle-btn " + (tradingEnabled ? "on" : "off");
+  btn.textContent = tradingEnabled ? "🟢 Торговля включена" : "🔴 Торговля на паузе";
+}
+
+document.getElementById("trading-toggle").addEventListener("click", async () => {
+  tradingEnabled = !tradingEnabled;
+  renderTradingToggle();
+  try {
+    await getJSON("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trading_enabled: tradingEnabled }),
+    });
+  } catch (e) {
+    tradingEnabled = !tradingEnabled;
+    renderTradingToggle();
+    alert("Ошибка: " + e.message);
+  }
+});
+
+document.getElementById("logout-btn").addEventListener("click", async () => {
+  try {
+    await fetch("/api/logout", { method: "POST" });
+  } catch (e) { /* всё равно перезагружаем - сессия уже недействительна */ }
+  location.reload();
+});
+
+async function loadSettings() {
+  try {
+    const s = await getJSON("/api/settings");
+    document.getElementById("margin").value = s.margin_usdt;
+    document.getElementById("leverage").value = s.leverage;
+    tradingEnabled = s.trading_enabled !== false;
+    renderTradingToggle();
+  } catch (e) { console.error(e); }
+}
+
+document.getElementById("settings-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const msg = document.getElementById("settings-msg");
+  msg.textContent = "Сохраняю…";
+  msg.className = "";
+
+  // tp_percents отсюда убран: разбивка по тейкам своя у каждого формата
+  // сигнала (раздел ниже), а settings.update() правит только те поля,
+  // которые реально пришли, - непереданное остаётся как было.
+  const patch = {
+    margin_usdt: parseFloat(document.getElementById("margin").value),
+    leverage: parseInt(document.getElementById("leverage").value, 10),
+  };
+
+  try {
+    await getJSON("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    msg.textContent = "✅ Сохранено. Применится к новым сделкам.";
+    msg.className = "ok";
+  } catch (e) {
+    msg.textContent = "❌ " + e.message;
+    msg.className = "err";
+  }
+});
+
+document.getElementById("sync-time-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("sync-time-btn");
+  btn.textContent = "⏳ Обновляю…";
+  btn.disabled = true;
+  try {
+    const data = await getJSON("/api/sync-time", { method: "POST" });
+    document.getElementById("time-offset").textContent =
+      `расхождение с локальными часами: ${data.offset_ms} мс`;
+    btn.textContent = "✅ Обновлено";
+    setTimeout(() => { btn.textContent = "🔄 Обновить время"; btn.disabled = false; }, 2000);
+  } catch (e) {
+    btn.textContent = "❌ Ошибка";
+    setTimeout(() => { btn.textContent = "🔄 Обновить время"; btn.disabled = false; }, 2000);
+  }
+});
+
+// ==================== ЗАЩИТА ОТ СЛИВА ====================
+let riskBusy = false;
+
+function renderRisk(s) {
+  const banner = document.getElementById("risk-banner");
+  if (s.emergency_stop) {
+    banner.className = "risk-banner blocked";
+    banner.textContent = "🛑 EMERGENCY STOP — торговля остановлена вручную. Снимите блокировку, чтобы продолжить.";
+  } else if (s.blocked) {
+    const min = Math.floor(s.blocked_seconds_left / 60);
+    banner.className = "risk-banner blocked";
+    banner.textContent = `⏸ Торговля на паузе ещё ${Math.floor(min / 60)}ч ${min % 60}м — ${s.block_reason}`;
+  } else {
+    banner.className = "risk-banner ok";
+    banner.textContent = "🟢 Торговля разрешена, лимиты не превышены";
+  }
+
+  const pnlEl = document.getElementById("risk-daily-pnl");
+  pnlEl.textContent = fmt(s.daily_pnl);
+  pnlEl.className = "metric " + (s.daily_pnl >= 0 ? "pnl-pos" : "pnl-neg");
+  document.getElementById("risk-closed-today").textContent = s.closed_today;
+
+  const streakEl = document.getElementById("risk-streak");
+  streakEl.textContent = s.losing_streak;
+  streakEl.className = "metric " + (s.losing_streak > 0 ? "pnl-neg" : "");
+
+  // поля не трогаем, пока пользователь их правит
+  if (riskBusy || document.getElementById("risk-form").contains(document.activeElement)) return;
+
+  const c = s.settings;
+  document.getElementById("risk-open").value = c.max_open_trades;
+  document.getElementById("risk-open-enabled").checked = c.max_open_trades_enabled;
+  document.getElementById("risk-pct").value = c.daily_loss_percent;
+  document.getElementById("risk-pct-enabled").checked = c.daily_loss_percent_enabled;
+  document.getElementById("risk-usdt").value = c.daily_loss_usdt;
+  document.getElementById("risk-usdt-enabled").checked = c.daily_loss_usdt_enabled;
+  document.getElementById("risk-streak-limit").value = c.max_losing_streak;
+  document.getElementById("risk-streak-enabled").checked = c.max_losing_streak_enabled;
+  document.getElementById("risk-cooldown").value = c.cooldown_hours;
+}
+
+async function refreshRisk() {
+  try {
+    renderRisk(await getJSON("/api/risk"));
+  } catch (e) { console.error(e); }
+}
+
+document.getElementById("risk-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const msg = document.getElementById("risk-msg");
+  msg.textContent = "Сохраняю…";
+  msg.className = "msg";
+
+  const patch = {
+    max_open_trades: parseInt(document.getElementById("risk-open").value, 10),
+    max_open_trades_enabled: document.getElementById("risk-open-enabled").checked,
+    daily_loss_percent: parseFloat(document.getElementById("risk-pct").value),
+    daily_loss_percent_enabled: document.getElementById("risk-pct-enabled").checked,
+    daily_loss_usdt: parseFloat(document.getElementById("risk-usdt").value),
+    daily_loss_usdt_enabled: document.getElementById("risk-usdt-enabled").checked,
+    max_losing_streak: parseInt(document.getElementById("risk-streak-limit").value, 10),
+    max_losing_streak_enabled: document.getElementById("risk-streak-enabled").checked,
+    cooldown_hours: parseFloat(document.getElementById("risk-cooldown").value),
+  };
+
+  riskBusy = true;
+  try {
+    const s = await getJSON("/api/risk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    msg.textContent = "✅ Лимиты сохранены";
+    msg.className = "msg ok";
+    riskBusy = false;
+    renderRisk(s);
+  } catch (e) {
+    msg.textContent = "❌ " + e.message;
+    msg.className = "msg err";
+    riskBusy = false;
+  }
+});
+
+document.getElementById("risk-unblock-btn").addEventListener("click", async () => {
+  const msg = document.getElementById("risk-msg");
+  try {
+    const s = await getJSON("/api/risk/unblock", { method: "POST" });
+    msg.textContent = "✅ Блокировка снята, торговля разрешена";
+    msg.className = "msg ok";
+    renderRisk(s);
+  } catch (e) {
+    msg.textContent = "❌ " + e.message;
+    msg.className = "msg err";
+  }
+});
+
+document.getElementById("emergency-stop-btn").addEventListener("click", async () => {
+  if (!confirm("Закрыть ВСЕ открытые позиции по рынку и заблокировать торговлю?")) return;
+  const btn = document.getElementById("emergency-stop-btn");
+  const msg = document.getElementById("risk-msg");
+  btn.disabled = true;
+  btn.textContent = "⏳ Закрываю позиции…";
+  msg.textContent = "";
+  msg.className = "msg";
+  try {
+    const r = await getJSON("/api/risk/emergency-stop", { method: "POST" });
+    msg.textContent = (r.closed && r.closed.length)
+      ? "🛑 Торговля заблокирована. Закрыты: " + r.closed.join(", ")
+      : "🛑 Торговля заблокирована. Открытых позиций не было.";
+    msg.className = "msg ok";
+    if (r.errors && r.errors.length) {
+      msg.textContent += "\n⚠️ Не удалось закрыть:\n" + r.errors.join("\n");
+      msg.className = "msg err";
+    }
+    if (r.risk) renderRisk(r.risk);
+  } catch (e) {
+    msg.textContent = "❌ " + e.message;
+    msg.className = "msg err";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🛑 Стоп всё — закрыть позиции";
+    refreshRisk();
+    refreshTrades();
+  }
+});
+
+// ==================== ФОРМАТЫ СООБЩЕНИЙ ====================
+let parserList = [];
+
+function parserFromForm() {
+  // Разбивка объёма правится в своём разделе ниже, а не здесь. Берём её из
+  // уже загруженного списка, иначе сохранение регулярок затирало бы доли.
+  const name = document.getElementById("p-name").value.trim();
+  const known = parserList.find(p => p.name === name);
+  return {
+    name: name,
+    title: document.getElementById("p-title").value.trim(),
+    prefilter: document.getElementById("p-prefilter").value,
+    fields: {
+      symbol: document.getElementById("p-symbol").value,
+      side: document.getElementById("p-side").value,
+      stop_loss: document.getElementById("p-sl").value,
+      signal_id: document.getElementById("p-signal-id").value,
+    },
+    targets: document.getElementById("p-targets").value,
+    entry_zone: document.getElementById("p-entry-zone").value,
+    tp_percents: (known && known.tp_percents) || null,
+  };
+}
+
+function fillParserForm(p) {
+  p = p || { fields: {} };
+  const f = p.fields || {};
+  document.getElementById("p-name").value = p.name || "";
+  document.getElementById("p-title").value = p.title || "";
+  document.getElementById("p-prefilter").value = p.prefilter || "";
+  document.getElementById("p-symbol").value = f.symbol || "";
+  document.getElementById("p-side").value = f.side || "";
+  document.getElementById("p-sl").value = f.stop_loss || "";
+  document.getElementById("p-signal-id").value = f.signal_id || "";
+  document.getElementById("p-targets").value = p.targets || "";
+  document.getElementById("p-entry-zone").value = p.entry_zone || "";
+}
+
+function renderParserSelect(selectedName) {
+  const sel = document.getElementById("parser-select");
+  sel.innerHTML = parserList
+    .map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.title || p.name)}</option>`)
+    .join("");
+  if (selectedName) sel.value = selectedName;
+}
+
+async function loadParsers(selectName) {
+  try {
+    parserList = await getJSON("/api/parsers");
+    const name = selectName || document.getElementById("parser-select").value || (parserList[0] || {}).name;
+    renderParserSelect(name);
+    fillParserForm(parserList.find(p => p.name === name) || parserList[0]);
+    renderSplits();
+  } catch (e) { console.error(e); }
+}
+
+// ==================== РАЗБИВКА ОБЪЁМА ПО ТЕЙКАМ ====================
+// Своя для каждого формата: у ggshot четыре тейка, у Fat Pig шесть, и
+// одна общая разбивка на оба не натягивается.
+
+const DEFAULT_SPLIT = [30, 30, 20, 20];
+
+// Что сейчас в полях: имя формата -> массив долей. Держим отдельно от
+// parserList, чтобы правки не пропадали при фоновой перезагрузке списка.
+let splitDraft = {};
+
+function splitFor(p) {
+  if (splitDraft[p.name]) return splitDraft[p.name];
+  return (p.tp_percents && p.tp_percents.length)
+    ? p.tp_percents.slice()
+    : DEFAULT_SPLIT.slice();
+}
+
+function renderSplits() {
+  const box = document.getElementById("splits-list");
+  if (!parserList.length) {
+    box.innerHTML = '<div class="channel-sub">Форматов пока нет</div>';
+    return;
+  }
+  box.innerHTML = parserList.map(p => {
+    const vals = splitFor(p);
+    const inputs = vals.map((v, i) => `
+      <div class="split-tp">
+        <label>TP${i + 1}</label>
+        <input type="number" step="0.1" min="0.1" value="${v}"
+               data-split="${escapeHtml(p.name)}" data-idx="${i}">
+      </div>`).join("");
+    const sum = vals.reduce((a, b) => a + (Number(b) || 0), 0);
+    const ok = Math.abs(sum - 100) < 0.01;
+    return `
+      <div class="split-card">
+        <div class="split-head">
+          <h3>${escapeHtml(p.title || p.name)}</h3>
+          <span class="split-sub">${vals.length} тейк(ов) · формат ${escapeHtml(p.name)}</span>
+        </div>
+        <div class="split-row">${inputs}</div>
+        <div class="split-total ${ok ? "ok" : "bad"}" data-total="${escapeHtml(p.name)}">
+          Сумма: ${sum.toFixed(1)}%${ok ? "" : " — должно быть 100%"}
+        </div>
+        <div class="row-actions">
+          <button type="button" class="ghost-btn" data-split-add="${escapeHtml(p.name)}">+ тейк</button>
+          <button type="button" class="ghost-btn" data-split-del="${escapeHtml(p.name)}">− тейк</button>
+          <button type="button" class="ghost-btn" data-split-even="${escapeHtml(p.name)}">Поровну</button>
+          <button type="button" data-split-save="${escapeHtml(p.name)}">Сохранить</button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function updateSplitTotal(name) {
+  const vals = splitDraft[name] || [];
+  const sum = vals.reduce((a, b) => a + (Number(b) || 0), 0);
+  const ok = Math.abs(sum - 100) < 0.01;
+  const el = document.querySelector(`[data-total="${CSS.escape(name)}"]`);
+  if (!el) return;
+  el.className = "split-total " + (ok ? "ok" : "bad");
+  el.textContent = `Сумма: ${sum.toFixed(1)}%` + (ok ? "" : " — должно быть 100%");
+}
+
+document.getElementById("splits-list").addEventListener("input", (ev) => {
+  const name = ev.target.dataset.split;
+  if (!name) return;
+  const p = parserList.find(x => x.name === name);
+  if (!p) return;
+  const vals = splitFor(p).slice();
+  vals[Number(ev.target.dataset.idx)] = Number(ev.target.value);
+  splitDraft[name] = vals;
+  updateSplitTotal(name);      // только цифру суммы, поля не трогаем -
+});                            // иначе курсор выпрыгивал бы при вводе
+
+document.getElementById("splits-list").addEventListener("click", async (ev) => {
+  const btn = ev.target;
+  const msg = document.getElementById("splits-msg");
+  const name = btn.dataset.splitAdd || btn.dataset.splitDel
+            || btn.dataset.splitEven || btn.dataset.splitSave;
+  if (!name) return;
+  const p = parserList.find(x => x.name === name);
+  if (!p) return;
+  let vals = splitFor(p).slice();
+
+  if (btn.dataset.splitAdd) {
+    if (vals.length >= 10) {
+      msg.textContent = "❌ Больше 10 тейков бот не принимает";
+      msg.className = "msg err";
+      return;
+    }
+    vals.push(0);
+    splitDraft[name] = vals;
+    renderSplits();
+    return;
+  }
+  if (btn.dataset.splitDel) {
+    if (vals.length <= 2) {
+      msg.textContent = "❌ Меньше двух тейков нельзя: стопу некуда двигаться";
+      msg.className = "msg err";
+      return;
+    }
+    vals.pop();
+    splitDraft[name] = vals;
+    renderSplits();
+    return;
+  }
+  if (btn.dataset.splitEven) {
+    // остаток отдаём последнему, чтобы сумма была ровно 100
+    const each = Math.floor(1000 / vals.length) / 10;
+    vals = vals.map(() => each);
+    vals[vals.length - 1] = Number((100 - each * (vals.length - 1)).toFixed(1));
+    splitDraft[name] = vals;
+    renderSplits();
+    return;
+  }
+
+  // сохранение
+  const sum = vals.reduce((a, b) => a + (Number(b) || 0), 0);
+  // пустая доля не ловится проверкой суммы: добавили поле - сумма всё ещё 100,
+  // а бот такую разбивку не примет. Поэтому отдельная проверка
+  if (vals.some(v => !(Number(v) > 0))) {
+    msg.textContent = "❌ Заполните все доли — каждая должна быть больше 0";
+    msg.className = "msg err";
+    return;
+  }
+  if (Math.abs(sum - 100) > 0.01) {
+    msg.textContent = `❌ Сумма долей ${sum.toFixed(1)}%, а должна быть 100%`;
+    msg.className = "msg err";
+    return;
+  }
+  msg.textContent = "Сохраняю…";
+  msg.className = "msg";
+  try {
+    await getJSON("/api/parsers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...p, tp_percents: vals }),
+    });
+    delete splitDraft[name];
+    await loadParsers();
+    msg.textContent = `✅ Разбивка для «${p.title || p.name}» сохранена: ${vals.join(" / ")}%`;
+    msg.className = "msg ok";
+  } catch (e) {
+    msg.textContent = "❌ " + e.message;
+    msg.className = "msg err";
+  }
+});
+
+document.getElementById("parser-select").addEventListener("change", (ev) => {
+  const p = parserList.find(x => x.name === ev.target.value);
+  fillParserForm(p);
+  const msg = document.getElementById("parser-msg");
+  msg.textContent = "";
+  msg.className = "msg";
+});
+
+document.getElementById("parser-new-btn").addEventListener("click", () => {
+  fillParserForm(null);
+  document.getElementById("p-name").focus();
+  const msg = document.getElementById("parser-msg");
+  msg.textContent = "Заполните поля и сохраните — формат появится в списке.";
+  msg.className = "msg";
+});
+
+document.getElementById("parser-test-btn").addEventListener("click", async () => {
+  const msg = document.getElementById("parser-msg");
+  msg.textContent = "Проверяю…";
+  msg.className = "msg";
+  try {
+    const r = await getJSON("/api/parsers/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        parser: parserFromForm(),
+        sample: document.getElementById("p-sample").value,
+      }),
+    });
+    if (r.ok) {
+      const s = r.signal;
+      msg.textContent =
+        `✅ Сигнал распознан\n` +
+        `Монета: ${s.symbol}\nНаправление: ${s.strategy}\n` +
+        `Тейк-профиты (${s.targets.length}): ${s.targets.join(", ")}\n` +
+        (s.tp_percents ? `Разбивка объёма: ${s.tp_percents.join(" / ")}%\n` : "") +
+        `Стоп-лосс: ${s.stop_loss}\n` +
+        `ID сигнала: ${s.signal_id ?? "не найден (дубли не отсеются)"}` +
+        (s.entry_zone ? `\nЗона входа: ${s.entry_zone.join(" – ")} (справочно)` : "");
+      msg.className = "msg ok";
+    } else {
+      msg.textContent = "❌ " + r.error;
+      msg.className = "msg err";
+    }
+  } catch (e) {
+    msg.textContent = "❌ " + e.message;
+    msg.className = "msg err";
+  }
+});
+
+document.getElementById("parser-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const msg = document.getElementById("parser-msg");
+  msg.textContent = "Сохраняю…";
+  msg.className = "msg";
+  try {
+    const saved = await getJSON("/api/parsers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parserFromForm()),
+    });
+    msg.textContent = "✅ Формат сохранён. Применяется к новым сообщениям сразу.";
+    msg.className = "msg ok";
+    await loadParsers(saved.name);
+    lastChannelsHtml = "";
+    refreshChannels();
+  } catch (e) {
+    msg.textContent = "❌ " + e.message;
+    msg.className = "msg err";
+  }
+});
+
+document.getElementById("parser-delete-btn").addEventListener("click", async () => {
+  const name = document.getElementById("parser-select").value;
+  if (!name) return;
+  if (!confirm(`Удалить формат «${name}»? Каналы, привязанные к нему, будут перебирать все форматы.`)) return;
+  const msg = document.getElementById("parser-msg");
+  try {
+    await getJSON(`/api/parsers/${encodeURIComponent(name)}`, { method: "DELETE" });
+    msg.textContent = "✅ Формат удалён";
+    msg.className = "msg ok";
+    await loadParsers();
+    lastChannelsHtml = "";
+    refreshChannels();
+  } catch (e) {
+    msg.textContent = "❌ " + e.message;
+    msg.className = "msg err";
+  }
+});
+
+refreshStatus(); refreshBalance(); refreshTrades(); refreshChannels(); loadSettings();
+refreshRisk(); loadParsers();
+setInterval(refreshStatus, 5000);
+setInterval(refreshBalance, 5000);
+setInterval(refreshTrades, 5000);
+setInterval(refreshRisk, 5000);
+setInterval(refreshChannels, 10000);
+setInterval(tickClock, 1000);
+</script>
+</body>
+</html>

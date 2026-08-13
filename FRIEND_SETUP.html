@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Ляля Бот — установка Docker и Git для друга</title>
+  <style>
+    :root { --bg:#08090b; --panel:#111318; --panel2:#171a20; --line:#2b3038; --text:#f5f6f8; --muted:#a0a7b2; --red:#ff3655; --redsoft:rgba(255,54,85,.12); --green:#3bd484; --yellow:#f0bd55; --blue:#65aaff; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; min-height:100vh; color:var(--text); background:radial-gradient(circle at 88% 3%,rgba(178,17,45,.22),transparent 30rem),radial-gradient(circle at 8% 85%,rgba(255,54,85,.08),transparent 28rem),var(--bg); font:15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    a { color:#ff8597; text-decoration:none; } a:hover { color:#ffb0bb; } code,pre { font-family:"Cascadia Code","JetBrains Mono",Consolas,monospace; }
+    .layout { display:grid; grid-template-columns:270px minmax(0,1fr); min-height:100vh; }
+    aside { position:sticky; top:0; height:100vh; padding:25px 19px; overflow-y:auto; border-right:1px solid var(--line); background:rgba(10,11,14,.95); backdrop-filter:blur(16px); z-index:10; }
+    .brand { display:flex; align-items:center; gap:12px; padding:3px 7px 21px; border-bottom:1px solid var(--line); }
+    .logo { display:grid; place-items:center; width:43px; height:43px; border:1px solid rgba(255,54,85,.45); border-radius:14px; color:var(--red); background:linear-gradient(145deg,#321018,#130b0e); box-shadow:inset 0 0 22px rgba(255,54,85,.16); font-weight:900; font-size:22px; }
+    .brand strong,.brand small { display:block; } .brand strong { font-size:17px; } .brand small { color:var(--muted); }
+    .nav-title { margin:19px 10px 7px; color:#707783; font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+    nav a { display:flex; align-items:center; gap:10px; margin:3px 0; padding:9px 11px; border:1px solid transparent; border-radius:11px; color:#b9c0ca; transition:.17s ease; }
+    nav a:hover,nav a.active { color:#fff; border-color:rgba(255,54,85,.25); background:var(--redsoft); } nav span { width:19px; text-align:center; }
+    .side-note { margin-top:22px; padding:12px; border:1px solid var(--line); border-radius:12px; color:var(--muted); background:#0d0f12; font-size:12px; }
+    main { min-width:0; padding:42px clamp(20px,5vw,70px) 80px; } .content { width:min(970px,100%); margin:0 auto; }
+    .hero { position:relative; overflow:hidden; padding:clamp(28px,5vw,48px); border:1px solid #392329; border-radius:26px; background:linear-gradient(135deg,rgba(39,15,21,.97),rgba(16,18,22,.97) 58%); box-shadow:0 24px 80px rgba(0,0,0,.38); }
+    .hero::after { content:""; position:absolute; right:-80px; top:-100px; width:300px; height:300px; border-radius:50%; background:rgba(255,54,85,.11); }
+    .eyebrow { position:relative; z-index:1; color:#ff8496; font-size:12px; font-weight:850; letter-spacing:.13em; text-transform:uppercase; }
+    h1 { position:relative; z-index:1; margin:9px 0 12px; max-width:760px; font-size:clamp(34px,6vw,62px); line-height:1.04; letter-spacing:-.045em; }
+    .hero p { position:relative; z-index:1; max-width:720px; margin:0; color:#c6cad1; font-size:17px; }
+    .chips { position:relative; z-index:1; display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; } .chip { padding:6px 10px; border:1px solid #433238; border-radius:999px; color:#d9dce0; background:rgba(0,0,0,.2); font-size:12px; }
+    section { scroll-margin-top:24px; margin-top:56px; } h2 { margin:0 0 10px; font-size:clamp(25px,4vw,34px); line-height:1.2; letter-spacing:-.025em; }
+    h2::before { content:""; display:inline-block; width:5px; height:.8em; margin-right:11px; border-radius:4px; background:var(--red); } h3 { margin:26px 0 9px; font-size:18px; } .lead { margin:0 0 21px; color:var(--muted); font-size:16px; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; } .card { padding:20px; border:1px solid var(--line); border-radius:18px; background:linear-gradient(145deg,var(--panel2),var(--panel)); } .card h3 { margin-top:0; } .card p:last-child { margin-bottom:0; }
+    .step { display:grid; grid-template-columns:43px minmax(0,1fr); gap:14px; padding:18px 0; border-bottom:1px solid var(--line); } .step:last-child { border-bottom:0; }
+    .number { display:grid; place-items:center; width:38px; height:38px; border:1px solid rgba(255,54,85,.45); border-radius:12px; color:#ff7489; background:var(--redsoft); font-weight:900; } .step h3 { margin:3px 0 5px; } .step p { margin:0; color:var(--muted); }
+    .button-row { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0; } .download { display:inline-flex; align-items:center; gap:9px; padding:11px 15px; border:1px solid rgba(255,54,85,.4); border-radius:11px; color:#fff; background:linear-gradient(145deg,#a70f2b,#781023); font-weight:750; } .download.secondary { border-color:#3c4551; background:#1a1e24; }
+    .callout { margin:18px 0; padding:15px 17px; border:1px solid var(--line); border-left:4px solid var(--blue); border-radius:12px; color:#cbd0d7; background:rgba(101,170,255,.07); } .callout.warning { border-left-color:var(--yellow); background:rgba(240,189,85,.07); } .callout.danger { border-left-color:var(--red); background:var(--redsoft); } .callout.success { border-left-color:var(--green); background:rgba(59,212,132,.07); } .callout strong { color:#fff; }
+    .codebox { margin:13px 0 20px; border:1px solid #323740; border-radius:14px; overflow:hidden; background:#090a0c; } .code-head { display:flex; align-items:center; justify-content:space-between; min-height:39px; padding:0 10px 0 15px; border-bottom:1px solid #292e35; color:#767e89; background:#121419; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    pre { margin:0; padding:17px; overflow:auto; color:#e9eaec; font-size:13px; line-height:1.7; white-space:pre; } .copy { padding:5px 9px; border:1px solid #3a4049; border-radius:8px; color:#c2c7ce; background:#1b1e24; cursor:pointer; font:inherit; letter-spacing:0; text-transform:none; } .copy:hover { border-color:#79414c; color:#fff; } .copy.done { border-color:rgba(59,212,132,.5); color:var(--green); }
+    .checklist { display:grid; gap:8px; } .check { display:flex; align-items:flex-start; gap:11px; padding:12px 13px; border:1px solid var(--line); border-radius:12px; color:#cbd0d6; background:rgba(255,255,255,.015); cursor:pointer; } .check input { width:17px; height:17px; margin:3px 0 0; accent-color:var(--red); } .check:has(input:checked) { color:#818994; text-decoration:line-through; background:rgba(59,212,132,.035); }
+    table { width:100%; border-collapse:collapse; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--panel); } th,td { padding:13px 14px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; } th { color:#adb4be; background:#171a20; font-size:12px; letter-spacing:.05em; text-transform:uppercase; } tr:last-child td { border-bottom:0; } td:first-child { color:#fff; font-weight:700; }
+    .mono { color:#ff8da0; font-family:"Cascadia Code",Consolas,monospace; font-size:.93em; } details { margin:10px 0; border:1px solid var(--line); border-radius:13px; background:var(--panel); } summary { padding:14px 16px; color:#fff; font-weight:750; cursor:pointer; } details>div { padding:0 16px 15px; color:var(--muted); }
+    footer { margin-top:68px; padding-top:22px; border-top:1px solid var(--line); color:#777f8a; text-align:center; font-size:12px; } .menu { display:none; }
+    @media(max-width:840px){ .layout{display:block} aside{position:fixed;left:0;top:0;width:270px;transform:translateX(-105%);transition:transform .2s ease;box-shadow:0 20px 70px rgba(0,0,0,.55)} aside.open{transform:translateX(0)} main{padding-top:76px}.menu{display:block;position:fixed;left:14px;top:14px;z-index:20;padding:10px 13px;border:1px solid #49333a;border-radius:11px;color:#fff;background:#15181d;cursor:pointer}.grid{grid-template-columns:1fr} }
+    @media(max-width:540px){ main{padding-left:14px;padding-right:14px}.hero{border-radius:19px}.step{grid-template-columns:35px minmax(0,1fr)}.number{width:32px;height:32px}table{display:block;overflow-x:auto} }
+    @media print{ :root{--bg:#fff;--panel:#fff;--panel2:#fff;--line:#ddd;--text:#111;--muted:#444}body{color:#111;background:#fff;font-size:11pt}aside,.menu,.copy{display:none!important}.layout{display:block}main{padding:0}.content{width:100%}.hero,.card,.codebox,table,details{box-shadow:none;break-inside:avoid}.hero{background:#fff;border-color:#bbb}.hero p,.lead,.step p{color:#333}pre{color:#111;background:#f5f5f5;white-space:pre-wrap}a{color:#97001d} }
+  </style>
+</head>
+<body>
+  <button class="menu" type="button" aria-label="Открыть меню">☰ Меню</button>
+  <div class="layout">
+    <aside>
+      <div class="brand"><div class="logo">Л</div><div><strong>Ляля Бот</strong><small>Инструкция для друга</small></div></div>
+      <div class="nav-title">Установка</div>
+      <nav>
+        <a href="#start"><span>◆</span>Что понадобится</a><a href="#sender"><span>◈</span>Перед отправкой</a><a href="#wsl"><span>1</span>Подготовить Windows</a><a href="#git"><span>2</span>Установить Git</a><a href="#docker"><span>3</span>Установить Docker</a><a href="#project"><span>4</span>Получить проект</a><a href="#config"><span>5</span>Заполнить ключи</a><a href="#run"><span>6</span>Запустить</a><a href="#control"><span>⌁</span>Управление</a><a href="#errors"><span>!</span>Ошибки</a>
+      </nav>
+      <div class="side-note">HAPP и другой VPN для этой инструкции не требуются. Нужен обычный доступ к Telegram, GitHub и Bybit.</div>
+    </aside>
+    <main><div class="content">
+      <header class="hero"><div class="eyebrow">Windows 10/11 · Git · Docker Desktop</div><h1>Как получить и запустить «Ляля Бот»</h1><p>Пошаговая инструкция без Python, PyCharm и HAPP: устанавливаем необходимые программы, добавляем собственные ключи и запускаем проект в Docker.</p><div class="chips"><span class="chip">Windows x64</span><span class="chip">WSL 2</span><span class="chip">Git for Windows</span><span class="chip">Docker Compose</span></div></header>
+
+      <section id="start"><h2>Что понадобится</h2><p class="lead">Компьютер должен иметь 64-битную Windows, не менее 8 ГБ памяти и включённую аппаратную виртуализацию.</p><div class="grid"><div class="card"><h3>Устанавливаем</h3><p>Git for Windows, WSL 2 и Docker Desktop. Python отдельно устанавливать не требуется.</p></div><div class="card"><h3>Получаем от владельца</h3><p>Очищенную папку проекта или адрес закрытого Git-репозитория. Ключи владельца в комплект не входят.</p></div></div><div class="callout danger"><strong>Сначала используйте DEMO-счёт.</strong> Не переключайте проект на реальные деньги, пока не проверены сигналы, объём позиции, стопы и тейк-профиты.</div></section>
+
+      <section id="sender"><h2>Что владелец удаляет перед отправкой</h2><p class="lead">Этот раздел предназначен отправителю проекта. Очистить только API-ключи недостаточно.</p><div class="checklist">
+        <label class="check"><input type="checkbox">Рабочий проект скопирован в отдельную папку — оригинал не редактируется.</label>
+        <label class="check"><input type="checkbox">В <span class="mono">config.py</span> очищены значения Telegram, Bybit и веб-пароля владельца, но сами строки и названия параметров сохранены.</label>
+        <label class="check"><input type="checkbox">Удалены <span class="mono">BOT.session</span>, <span class="mono">BOT.session-journal</span> и скрытый файл <span class="mono">.env</span>.</label>
+        <label class="check"><input type="checkbox">Удалены личные файлы <span class="mono">authorized_chats.json</span>, <span class="mono">active_trades.json</span>, <span class="mono">trade_history.json</span>.</label>
+        <label class="check"><input type="checkbox">Удалены папка <span class="mono">logs</span>, журналы сигналов и другие личные данные.</label>
+        <label class="check"><input type="checkbox">В архив не попали <span class="mono">.git</span>, <span class="mono">.venv</span> и настройки IDE.</label>
+      </div><div class="callout warning"><strong>Не удаляйте исходный рабочий проект.</strong> Очищайте только копию, подготовленную для друга.</div></section>
+
+      <section id="wsl"><h2>1. Подготовить Windows</h2>
+        <div class="step"><div class="number">1</div><div><h3>Откройте PowerShell от имени администратора</h3><p>Нажмите «Пуск», введите PowerShell, нажмите правой кнопкой и выберите запуск от имени администратора.</p></div></div>
+        <div class="step"><div class="number">2</div><div><h3>Установите или обновите WSL 2</h3><p>Вставьте команды по очереди:</p></div></div>
+        <div class="codebox"><div class="code-head">PowerShell · администратор <button class="copy" type="button">Копировать</button></div><pre><code>wsl --install
+wsl --update
+wsl --set-default-version 2</code></pre></div>
+        <div class="step"><div class="number">3</div><div><h3>Перезагрузите компьютер</h3><p>Если Windows сообщает, что виртуализация выключена, включите Intel VT-x/VT-d или AMD-V/SVM в BIOS/UEFI.</p></div></div><div class="callout">Если <span class="mono">wsl --install</span> пишет, что WSL уже установлен, это нормально — выполните остальные команды.</div>
+      </section>
+
+      <section id="git"><h2>2. Установить Git</h2><p class="lead">Скачивайте Git только с официального сайта. В установщике можно оставить рекомендуемые параметры.</p><div class="button-row"><a class="download secondary" href="https://git-scm.com/install/windows" target="_blank" rel="noopener">Официальная загрузка Git ↗</a></div><p>Либо установите Git одной командой:</p><div class="codebox"><div class="code-head">PowerShell <button class="copy" type="button">Копировать</button></div><pre><code>winget install --id Git.Git -e --source winget</code></pre></div><p>Закройте PowerShell, откройте заново и проверьте:</p><div class="codebox"><div class="code-head">PowerShell <button class="copy" type="button">Копировать</button></div><pre><code>git --version</code></pre></div></section>
+
+      <section id="docker"><h2>3. Установить Docker Desktop</h2><p class="lead">Нужна версия Docker Desktop для Windows x86_64 с движком WSL 2.</p><div class="button-row"><a class="download" href="https://docs.docker.com/desktop/setup/install/windows-install/" target="_blank" rel="noopener">Скачать Docker Desktop ↗</a></div>
+        <div class="step"><div class="number">1</div><div><h3>Запустите установщик</h3><p>Выберите рекомендуемую установку для текущего пользователя и оставьте включённым WSL 2 backend.</p></div></div><div class="step"><div class="number">2</div><div><h3>Запустите Docker Desktop</h3><p>Дождитесь сообщения, что Docker Engine работает. Регистрация Docker Hub для локального запуска не обязательна.</p></div></div><div class="step"><div class="number">3</div><div><h3>Проверьте установку</h3><p>Откройте новый PowerShell:</p></div></div>
+        <div class="codebox"><div class="code-head">PowerShell <button class="copy" type="button">Копировать</button></div><pre><code>docker version
+docker compose version</code></pre></div><div class="callout success">Если обе команды показывают версии клиента и сервера, Docker готов.</div>
+      </section>
+
+      <section id="project"><h2>4. Получить проект</h2><p class="lead">Используйте один из двух способов. Не запускайте проект прямо из ZIP-архива или с флешки.</p><h3>Вариант A — владелец прислал ZIP</h3><ol><li>Распакуйте архив полностью.</li><li>Переместите папку, например, в <span class="mono">C:\LialiaBot</span>.</li><li>Проверьте наличие <span class="mono">compose.yaml</span>, <span class="mono">Dockerfile</span> и <span class="mono">config.py</span>.</li></ol><h3>Вариант B — закрытый Git-репозиторий</h3><div class="codebox"><div class="code-head">PowerShell · замените ссылку <button class="copy" type="button">Копировать</button></div><pre><code>cd C:\
+git clone АДРЕС_РЕПОЗИТОРИЯ LialiaBot
+cd C:\LialiaBot</code></pre></div><div class="callout warning">Не публикуйте проект с заполненным <span class="mono">config.py</span> в открытом репозитории.</div></section>
+
+      <section id="config"><h2>5. Заполнить собственные ключи</h2><p class="lead">Откройте <span class="mono">C:\LialiaBot\config.py</span> в Блокноте или редакторе кода. Не используйте ключи другого человека.</p>
+        <table><thead><tr><th>Параметр</th><th>Что указать</th></tr></thead><tbody>
+          <tr><td>API_ID и API_HASH</td><td>Собственные данные Telegram API с <a href="https://my.telegram.org/" target="_blank" rel="noopener">my.telegram.org</a>.</td></tr><tr><td>BOT_TOKEN</td><td>Токен своего бота от официального <span class="mono">@BotFather</span>.</td></tr><tr><td>ALLOWED_USERNAMES</td><td>Свой Telegram username.</td></tr><tr><td>BYBIT_API_KEY / SECRET</td><td>Собственные API-ключи Bybit. Начинать только с DEMO.</td></tr><tr><td>DEMO</td><td>При первом запуске обязательно <span class="mono">True</span>.</td></tr><tr><td>WEB_PASSWORD</td><td>Новый уникальный пароль веб-панели.</td></tr><tr><td>PROXY_SECRET</td><td>Новый случайный секрет из 32 шестнадцатеричных символов для локального MTProxy.</td></tr>
+        </tbody></table>
+        <h3>Создать новый PROXY_SECRET</h3><div class="codebox"><div class="code-head">PowerShell <button class="copy" type="button">Копировать</button></div><pre><code>$bytes = New-Object byte[] 16
+$rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+$rng.GetBytes($bytes)
+-join ($bytes | ForEach-Object { $_.ToString("x2") })</code></pre></div><p>Скопируйте результат и вставьте в строку:</p><div class="codebox"><div class="code-head">config.py · пример <button class="copy" type="button">Копировать</button></div><pre><code>PROXY_SECRET = "сюда_32_символа_из_команды"</code></pre></div><div class="callout danger"><strong>Никому не отправляйте заполненный config.py.</strong> API-ключ Bybit для торговли не должен иметь разрешения на вывод средств.</div>
+      </section>
+
+      <section id="run"><h2>6. Первый запуск</h2>
+        <div class="step"><div class="number">1</div><div><h3>Создайте служебный .env</h3><p>Откройте PowerShell в папке проекта:</p></div></div><div class="codebox"><div class="code-head">PowerShell <button class="copy" type="button">Копировать</button></div><pre><code>cd C:\LialiaBot
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\prepare-docker.ps1"</code></pre></div>
+        <div class="step"><div class="number">2</div><div><h3>Соберите Docker-образы</h3><p>Первая сборка загружает зависимости и может занять несколько минут. Сам торговый бот пока не запускается.</p></div></div><div class="codebox"><div class="code-head">PowerShell <button class="copy" type="button">Копировать</button></div><pre><code>docker compose build
+docker compose up -d mtproxy</code></pre></div>
+        <div class="step"><div class="number">3</div><div><h3>Авторизуйте свой пользовательский Telegram-аккаунт</h3><p>Это отдельная авторизация аккаунта, который читает каналы, а не Telegram-бота. Введите номер телефона в международном формате, код из Telegram и облачный пароль 2FA, если он включён.</p></div></div><div class="codebox"><div class="code-head">PowerShell · интерактивный вход <button class="copy" type="button">Копировать</button></div><pre><code>docker compose run --rm app python -c "from main import build_akk_client; c=build_akk_client(); c.start(); print('Telegram authorization OK:', c.is_user_authorized()); c.disconnect()"</code></pre></div>
+        <div class="callout danger"><strong>Код входа и пароль 2FA вводятся только в своём PowerShell.</strong> Никому их не отправляйте. После успешного входа рядом с проектом появится новый <span class="mono">BOT.session</span>.</div>
+        <div class="step"><div class="number">4</div><div><h3>Запустите весь проект</h3><p>Теперь можно включить приложение в фоновом режиме.</p></div></div><div class="codebox"><div class="code-head">PowerShell <button class="copy" type="button">Копировать</button></div><pre><code>docker compose up -d</code></pre></div>
+        <div class="step"><div class="number">5</div><div><h3>Проверьте состояние</h3><p>Оба контейнера должны работать, MTProxy должен стать healthy.</p></div></div><div class="codebox"><div class="code-head">PowerShell <button class="copy" type="button">Копировать</button></div><pre><code>docker compose ps
+docker compose logs --tail=100 app</code></pre></div>
+        <div class="step"><div class="number">6</div><div><h3>Откройте интерфейсы</h3><p>В браузере: <a href="http://localhost:8080">http://localhost:8080</a>. В Telegram откройте своего бота и отправьте <span class="mono">/start</span>.</p></div></div><div class="callout warning"><strong>Одновременно запускается только один экземпляр с одним BOT_TOKEN и одной BOT.session.</strong> Иначе Telegram вернёт Conflict.</div>
+      </section>
+
+      <section id="control"><h2>Управление проектом</h2><table><thead><tr><th>Действие</th><th>Команда в C:\LialiaBot</th></tr></thead><tbody><tr><td>Показать состояние</td><td class="mono">docker compose ps</td></tr><tr><td>Смотреть журнал</td><td class="mono">docker compose logs -f app</td></tr><tr><td>Перезапустить приложение</td><td class="mono">docker compose restart app</td></tr><tr><td>Остановить всё</td><td class="mono">docker compose down</td></tr><tr><td>Запустить снова</td><td class="mono">docker compose up -d</td></tr><tr><td>Обновить из Git</td><td class="mono">git pull</td></tr><tr><td>Пересобрать после обновления</td><td class="mono">docker compose up -d --build</td></tr></tbody></table><div class="callout danger">Не используйте <span class="mono">docker compose down -v</span>: флаг <span class="mono">-v</span> удаляет служебные Docker-тома.</div></section>
+
+      <section id="errors"><h2>Частые проблемы</h2>
+        <details><summary>Docker-команды не работают</summary><div>Запустите Docker Desktop и дождитесь готовности Engine. Затем откройте новый PowerShell и повторите <span class="mono">docker version</span>.</div></details>
+        <details><summary>WSL требует обновление</summary><div>Откройте PowerShell от администратора, выполните <span class="mono">wsl --update</span> и перезагрузите Windows.</div></details>
+        <details><summary>prepare-docker.ps1 открылся в Блокноте</summary><div>Не запускайте файл двойным нажатием. Используйте указанную выше команду <span class="mono">powershell.exe -File ...</span>.</div></details>
+        <details><summary>Не найден MTPROXY_SECRET</summary><div>Проверьте новый 32-символьный <span class="mono">PROXY_SECRET</span> в <span class="mono">config.py</span>, затем повторите подготовку.</div></details>
+        <details><summary>Telegram пишет Conflict</summary><div>С тем же BOT_TOKEN уже запущен другой экземпляр. Остановите его.</div></details>
+        <details><summary>Сайт localhost:8080 не открывается</summary><div>Выполните <span class="mono">docker compose ps</span> и <span class="mono">docker compose logs --tail=200 app</span>. Проверьте, не занят ли порт 8080.</div></details>
+        <details><summary>Сигналы не приходят</summary><div>Проверьте авторизацию Telegram, включённые каналы, назначенные парсеры и доступность Telegram и Bybit из сети друга.</div></details>
+        <div class="callout">Если ошибка осталась, скопируйте вывод <span class="mono">docker compose ps</span> и <span class="mono">docker compose logs --tail=200 app</span>. Перед отправкой журнала убедитесь, что в нём нет токенов и ключей.</div>
+      </section>
+      <footer>Ляля Бот · локальная инструкция для Windows · официальные ссылки Docker и Git</footer>
+    </div></main>
+  </div>
+  <script>
+    const sidebar=document.querySelector('aside');document.querySelector('.menu').addEventListener('click',()=>sidebar.classList.toggle('open'));document.querySelectorAll('nav a').forEach(link=>link.addEventListener('click',()=>sidebar.classList.remove('open')));
+    document.querySelectorAll('.copy').forEach(button=>button.addEventListener('click',async()=>{const code=button.closest('.codebox').querySelector('code').innerText;try{await navigator.clipboard.writeText(code);button.textContent='Скопировано';button.classList.add('done');setTimeout(()=>{button.textContent='Копировать';button.classList.remove('done')},1600)}catch(_){const selection=window.getSelection(),range=document.createRange();range.selectNodeContents(button.closest('.codebox').querySelector('code'));selection.removeAllRanges();selection.addRange(range);button.textContent='Выделено'}}));
+    const checks=[...document.querySelectorAll('.check input')];checks.forEach((input,index)=>{const key=`friend-manual-check-${index}`;input.checked=localStorage.getItem(key)==='1';input.addEventListener('change',()=>localStorage.setItem(key,input.checked?'1':'0'))});
+    const links=[...document.querySelectorAll('nav a')];const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(!entry.isIntersecting)return;links.forEach(link=>link.classList.toggle('active',link.getAttribute('href')===`#${entry.target.id}`))}),{rootMargin:'-20% 0px -70% 0px'});document.querySelectorAll('main section').forEach(section=>observer.observe(section));
+  </script>
+</body>
+</html>

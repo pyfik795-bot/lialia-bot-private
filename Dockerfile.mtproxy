@@ -1,0 +1,30 @@
+FROM debian:bookworm-slim AS builder
+
+ARG MTPROXY_COMMIT=f36d8af769ffaeac36978d38c2c0f6d1104c2137
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential ca-certificates git libssl-dev zlib1g-dev \
+    && git clone https://github.com/TelegramMessenger/MTProxy.git /src \
+    && cd /src \
+    && git checkout --detach "$MTPROXY_COMMIT" \
+    && make -j"$(nproc)" \
+    && strip /src/objs/bin/mtproto-proxy
+
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl libssl3 zlib1g \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /src/objs/bin/mtproto-proxy /usr/local/bin/mtproto-proxy
+COPY docker/mtproxy-entrypoint.sh /usr/local/bin/mtproxy-entrypoint.sh
+RUN chmod 0755 /usr/local/bin/mtproto-proxy /usr/local/bin/mtproxy-entrypoint.sh
+
+VOLUME ["/data"]
+EXPOSE 443
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+  CMD kill -0 1
+
+ENTRYPOINT ["/usr/local/bin/mtproxy-entrypoint.sh"]
