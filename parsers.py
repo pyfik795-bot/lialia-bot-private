@@ -74,14 +74,14 @@ DEFAULT_PARSER = {
     "fields": {
         "symbol": r"#([A-Z0-9]+USDT)\b",
         "side": r"(Long|Short)\s+Entry\s+Zone",
-        "stop_loss": r"Stop-?Loss\s*:\**\s*\**\s*([\d.,]+)",
+        "stop_loss": r"Stop-?Loss\s*:\**\s*\**\s*([\d.,*]+)",
         "signal_id": r"Signal\s+ID\s*:\s*\**\s*#(\S+)",
     },
     # Telethon возвращает обычный текст без Markdown-звёздочек. Поэтому
     # выделение ** допускаем, но не требуем. Запятая встречается как
     # разделитель тысяч в ценах BTC (62,806).
-    "targets": r"Target\s*\d+\s*:\s*\**\s*([\d.,]+)",
-    "entry_zone": r"Entry\s+Zone:\**\s*\**([\d.,]+)\s*-\s*([\d.,]+)",
+    "targets": r"Target\s*\d+\s*:\s*\**\s*([\d.,*]+)",
+    "entry_zone": r"Entry\s+Zone:\**\s*\**([\d.,*]+)\s*[-–—]\s*([\d.,*]+)",
     "tp_percents": [30.0, 30.0, 20.0, 20.0],
 }
 
@@ -99,10 +99,10 @@ FATPIG_PARSER = {
         # "🟢 LONG" отдельной строкой: цепляемся за начало строки, чтобы не
         # поймать слово long где-нибудь в тексте описания
         "side": r"(?m)^[^\w\n]*\b(LONG|SHORT)\b",
-        "stop_loss": r"Stop\s*-?\s*Loss\s*:\s*\**\s*([\d.,]+)",
+        "stop_loss": r"Stop\s*-?\s*Loss\s*:\s*\**\s*([\d.,*]+)",
     },
-    "targets": r"Target\s*\d+\s*:\s*\**\s*([\d.,]+)",
-    "entry_zone": r"Entry\s*:\s*\**\s*([\d.,]+)\s*-\s*([\d.,]+)",
+    "targets": r"Target\s*\d+\s*:\s*\**\s*([\d.,*]+)",
+    "entry_zone": r"Entry\s*:\s*\**\s*([\d.,*]+)\s*[-–—]\s*([\d.,*]+)",
     "tp_percents": [20.0, 20.0, 15.0, 15.0, 15.0, 15.0],
 }
 
@@ -247,7 +247,8 @@ def remove(name: str) -> None:
 # ==================== РАЗБОР СООБЩЕНИЯ ====================
 
 def _to_float(value: str):
-    text = str(value).strip().replace(" ", "").replace("\u00a0", "")
+    text = (str(value).strip().replace(" ", "").replace("\u00a0", "")
+            .replace("*", ""))
 
     # Каналы смешивают 62,806 (запятая как разделитель тысяч) и 0,5356
     # (запятая как десятичный разделитель). Если присутствуют оба знака,
@@ -394,8 +395,9 @@ def parse_with(parser: dict, raw_text: str) -> dict | None:
         else:
             logger.warning(
                 f"Парсер «{parser.get('name')}»: тейков {len(targets)}, "
-                f"а долей разбивки {len(own_percents)} - разбивку игнорирую"
+                f"а формат ожидает {len(own_percents)} - сигнал пропускаю"
             )
+            return None
 
     # Канал может не давать ID (у Fat Pig его нет) - тогда считаем отпечаток
     # по самому сигналу, иначе повтор того же сообщения откроет вторую сделку
