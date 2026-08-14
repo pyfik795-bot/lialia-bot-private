@@ -11,6 +11,7 @@ services:
     init: true
     environment:
       TZ: ${TZ:-Europe/Moscow}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     ports:
       - "127.0.0.1:${LIALIA_WEB_PORT:-8080}:8080"
     volumes:

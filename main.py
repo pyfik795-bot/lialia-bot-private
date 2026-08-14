@@ -5,6 +5,14 @@
 asyncio-процессе, без subprocess и без блокирующего опроса файлов.
 """
 
+# Проверка выполняется до импорта остальных модулей: если Git применил новую
+# версию, процесс заменяется целиком и уже затем загружает обновлённый код.
+if __name__ == "__main__":
+    import auto_updater
+
+    if auto_updater.check_and_update() == auto_updater.UPDATED:
+        auto_updater.restart_current_process()
+
 import logging_setup
 
 logging_setup.configure()  # до импорта остальных модулей, чтобы их логгеры сразу писали и в файл
