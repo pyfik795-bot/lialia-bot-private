@@ -74,11 +74,14 @@ DEFAULT_PARSER = {
     "fields": {
         "symbol": r"#([A-Z0-9]+USDT)\b",
         "side": r"(Long|Short)\s+Entry\s+Zone",
-        "stop_loss": r"Stop-?Loss\s*:\**\s*\**\s*([\d.]+)",
+        "stop_loss": r"Stop-?Loss\s*:\**\s*\**\s*([\d.,]+)",
         "signal_id": r"Signal\s+ID\s*:\s*\**\s*#(\S+)",
     },
-    "targets": r"Target\s*\d+\s*:\s*\*+\s*([\d.]+)",
-    "entry_zone": r"Entry\s+Zone:\**\s*\**([\d.]+)\s*-\s*([\d.]+)",
+    # Telethon возвращает обычный текст без Markdown-звёздочек. Поэтому
+    # выделение ** допускаем, но не требуем. Запятая встречается как
+    # разделитель тысяч в ценах BTC (62,806).
+    "targets": r"Target\s*\d+\s*:\s*\**\s*([\d.,]+)",
+    "entry_zone": r"Entry\s+Zone:\**\s*\**([\d.,]+)\s*-\s*([\d.,]+)",
     "tp_percents": [30.0, 30.0, 20.0, 20.0],
 }
 
@@ -96,10 +99,10 @@ FATPIG_PARSER = {
         # "🟢 LONG" отдельной строкой: цепляемся за начало строки, чтобы не
         # поймать слово long где-нибудь в тексте описания
         "side": r"(?m)^[^\w\n]*\b(LONG|SHORT)\b",
-        "stop_loss": r"Stop\s*-?\s*Loss\s*:\s*\**\s*([\d.]+)",
+        "stop_loss": r"Stop\s*-?\s*Loss\s*:\s*\**\s*([\d.,]+)",
     },
-    "targets": r"Target\s*\d+\s*:\s*\**\s*([\d.]+)",
-    "entry_zone": r"Entry\s*:\s*\**\s*([\d.]+)\s*-\s*([\d.]+)",
+    "targets": r"Target\s*\d+\s*:\s*\**\s*([\d.,]+)",
+    "entry_zone": r"Entry\s*:\s*\**\s*([\d.,]+)\s*-\s*([\d.,]+)",
     "tp_percents": [20.0, 20.0, 15.0, 15.0, 15.0, 15.0],
 }
 
@@ -244,8 +247,28 @@ def remove(name: str) -> None:
 # ==================== РАЗБОР СООБЩЕНИЯ ====================
 
 def _to_float(value: str):
+    text = str(value).strip().replace(" ", "").replace("\u00a0", "")
+
+    # Каналы смешивают 62,806 (запятая как разделитель тысяч) и 0,5356
+    # (запятая как десятичный разделитель). Если присутствуют оба знака,
+    # последний считаем десятичным. Одиночную запятую перед тремя цифрами
+    # считаем разделителем тысяч, кроме значений вида 0,123.
+    if "," in text and "." in text:
+        if text.rfind(",") > text.rfind("."):
+            text = text.replace(".", "").replace(",", ".")
+        else:
+            text = text.replace(",", "")
+    elif "," in text:
+        parts = text.split(",")
+        if len(parts) > 2 and all(len(part) == 3 for part in parts[1:]):
+            text = "".join(parts)
+        elif len(parts) == 2 and len(parts[1]) == 3 and parts[0].lstrip("+-") != "0":
+            text = "".join(parts)
+        else:
+            text = text.replace(",", ".")
+
     try:
-        return float(Decimal(value))
+        return float(Decimal(text))
     except (InvalidOperation, ValueError):
         return None
 

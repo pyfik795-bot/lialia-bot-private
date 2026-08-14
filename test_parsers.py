@@ -34,6 +34,19 @@ Target 4: **49.22**
 🔎 **Signal ID:** #ID0932001391
 """
 
+GGSHOT_TELEGRAM_PLAIN_MESSAGE = """📩 #BTCUSDT 1h | Mid-Term
+📈 Long Entry Zone: 62,806-64,806
+
+⏳ Signal Details:
+Target 1: 64,806
+Target 2: 65,806
+Target 3: 66,806
+Target 4: 67,806
+
+🔺 Stop-Loss: 61,806
+🔎 Signal ID: #ID536000936256565
+"""
+
 FATPIG_MESSAGE = """🟢 LONG
 #ACE/USDT
 
@@ -79,6 +92,29 @@ class GgshotPresetTestCase(unittest.TestCase):
         self.assertEqual(signal["stop_loss"], 44.26)
         self.assertEqual(signal["signal_id"], "ID0932001391")
         self.assertEqual(signal["entry_zone"], [44.84, 45.71])
+
+    def test_parses_plain_telegram_text_with_comma_prices(self):
+        """Telethon снимает Markdown, а BTC-цены канал пишет через запятую."""
+        signal = self.parse(GGSHOT_TELEGRAM_PLAIN_MESSAGE)
+
+        self.assertEqual(signal["symbol"], "BTCUSDT")
+        self.assertEqual(signal["targets"], [64806.0, 65806.0, 66806.0, 67806.0])
+        self.assertEqual(signal["stop_loss"], 61806.0)
+        self.assertEqual(signal["entry_zone"], [62806.0, 64806.0])
+
+    def test_decimal_comma_is_not_mistaken_for_thousands(self):
+        text = (GGSHOT_TELEGRAM_PLAIN_MESSAGE
+                .replace("62,806-64,806", "0,5426-0,5699")
+                .replace("64,806", "0,5821")
+                .replace("65,806", "0,5943")
+                .replace("66,806", "0,6066")
+                .replace("67,806", "0,6432")
+                .replace("61,806", "0,5310"))
+
+        signal = self.parse(text)
+
+        self.assertEqual(signal["targets"], [0.5821, 0.5943, 0.6066, 0.6432])
+        self.assertEqual(signal["stop_loss"], 0.531)
 
     def test_message_without_prefilter_is_skipped(self):
         self.assertIsNone(self.parse(GGSHOT_MESSAGE.replace("📩", "")))
