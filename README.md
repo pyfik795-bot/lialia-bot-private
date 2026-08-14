@@ -16,8 +16,9 @@ Copy-Item .\config.example.py .\config.py
 ```
 
 Заполните в `config.py` только собственные `API_ID`, `API_HASH`, `BOT_TOKEN`,
-ключи Bybit, разрешённые Telegram usernames, пароль панели и новый
-32-символьный `PROXY_SECRET`. Настоящий `config.py` исключён из Git.
+ключи Bybit, разрешённые Telegram usernames и пароль панели. Настоящий
+`config.py` исключён из Git. Telegram подключается напрямую через системное
+интернет/VPN-соединение, отдельный MTProxy не используется.
 
 Подробная пошаговая инструкция для Windows находится в
 [`FRIEND_SETUP.html`](FRIEND_SETUP.html). Она открывается локально двойным
@@ -31,7 +32,6 @@ Copy-Item .\config.example.py .\config.py
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\prepare-docker.ps1"
 docker compose build
-docker compose up -d mtproxy
 docker compose run --rm app python -c "from main import build_akk_client; c=build_akk_client(); c.start(); print('Telegram authorization OK:', c.is_user_authorized()); c.disconnect()"
 docker compose up -d
 docker compose ps

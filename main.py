@@ -15,7 +15,6 @@ import time
 
 from aiohttp import web
 from telethon import TelegramClient, events
-from telethon.network import ConnectionTcpMTProxyRandomizedIntermediate
 
 import channels
 import config
@@ -33,24 +32,10 @@ logger = logging.getLogger("main")
 
 
 def build_akk_client() -> TelegramClient:
-    proxy_enabled = os.getenv("TELEGRAM_PROXY_ENABLED", "1").strip().lower() not in {
-        "0", "false", "no", "off",
-    }
-    client_options = {}
-    if proxy_enabled:
-        proxy_address = os.getenv("TELEGRAM_PROXY_ADDRESS", config.PROXY_ADDRESS)
-        proxy_port = int(os.getenv("TELEGRAM_PROXY_PORT", str(config.PROXY_PORT)))
-        proxy_secret = os.getenv("TELEGRAM_PROXY_SECRET", config.PROXY_SECRET)
-        client_options.update(
-            proxy=(proxy_address, proxy_port, proxy_secret),
-            connection=ConnectionTcpMTProxyRandomizedIntermediate,
-        )
-
     return TelegramClient(
         'BOT',
         config.API_ID,
         config.API_HASH,
-        **client_options,
     )
 
 
@@ -112,8 +97,8 @@ async def main():
 
     # Слушаем ВСЕ чаты аккаунта (без chats=), а не один жёстко заданный канал -
     # список разрешённых источников (channels.json) правится через сайт "на лету".
-    # Тот же обработчик используется резервным опросом, поэтому короткий обрыв
-    # MTProxy больше не создаёт слепое окно.
+    # Тот же обработчик используется резервным опросом, поэтому короткий сетевой
+    # обрыв больше не создаёт слепое окно.
     @akk.on(events.NewMessage())
     async def handler(event):
         await ingestor.handle_message(event.chat_id, event.message, origin="new_message")

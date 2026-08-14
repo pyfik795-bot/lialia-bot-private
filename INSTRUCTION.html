@@ -386,11 +386,11 @@
 
         <section id="overview">
           <h2>Общая схема</h2>
-          <p class="lead">На сервере последовательно запускаются VPN, локальный Telegram-прокси и приложение.</p>
+          <p class="lead">На сервере запускаются VPN и приложение. Telegram использует системное VPN-соединение напрямую.</p>
           <div class="grid">
             <div class="card">
               <h3>Что работает постоянно</h3>
-              <p><strong>HAPP VPN</strong> обеспечивает нужный сетевой маршрут. Docker запускает два контейнера: <span class="mono">lialia-mtproxy</span> и <span class="mono">lialia-bot</span>.</p>
+              <p><strong>HAPP VPN</strong> обеспечивает нужный сетевой маршрут. Docker запускает один контейнер: <span class="mono">lialia-bot</span>.</p>
             </div>
             <div class="card">
               <h3>Где хранятся данные</h3>
@@ -495,7 +495,7 @@ docker compose version</code></pre>
 chmod 600 config.py .env
 [ -f BOT.session ] &amp;&amp; chmod 600 BOT.session</code></pre>
           </div>
-          <div class="step"><div class="step-number">3</div><div><h3>Загрузите офлайн-образы</h3><p>Файл содержит приложение и локальный MTProxy.</p></div></div>
+          <div class="step"><div class="step-number">3</div><div><h3>Загрузите офлайн-образ</h3><p>Файл содержит образ приложения.</p></div></div>
           <div class="code-wrap">
             <div class="code-head">Terminal <button class="copy" type="button">Копировать</button></div>
             <pre><code>cd ~/LialiaBot
@@ -523,9 +523,9 @@ docker compose up -d --no-build</code></pre>
           <div class="code-wrap">
             <div class="code-head">Terminal <button class="copy" type="button">Копировать</button></div>
             <pre><code>docker compose ps
-docker compose exec mtproxy curl -s https://api.ipify.org ; echo</code></pre>
+docker compose logs --tail=100 app</code></pre>
           </div>
-          <div class="callout success"><strong>Нормальный результат:</strong> оба контейнера имеют состояние Running, MTProxy — Healthy, в Telegram пришло уведомление о старте.</div>
+          <div class="callout success"><strong>Нормальный результат:</strong> контейнер <span class="mono">lialia-bot</span> имеет состояние Running, в Telegram пришло уведомление о старте.</div>
           <h3>Открытие панели</h3>
           <p>На самом сервере откройте браузер и перейдите по адресу <a href="http://localhost:8080">http://localhost:8080</a>. Панель специально недоступна из интернета и локальной сети.</p>
           <h3>Контроль после переноса</h3>
@@ -569,7 +569,7 @@ docker compose ps</code></pre>
               <tr><td>Запустить снова</td><td class="mono">docker compose up -d --no-build</td></tr>
             </tbody>
           </table>
-          <div class="callout danger"><strong>Никогда не добавляйте <span class="mono">-v</span> к команде <span class="mono">docker compose down</span>.</strong> Этот флаг удаляет служебный том MTProxy.</div>
+          <div class="callout warning">Флаг <span class="mono">-v</span> здесь не требуется: состояние бота хранится в папке проекта.</div>
           <h3>Правильное выключение сервера</h3>
           <div class="code-wrap">
             <div class="code-head">Terminal <button class="copy" type="button">Копировать</button></div>
@@ -606,11 +606,9 @@ docker compose start app</code></pre>
               <tr><td>Сайт не открывается</td><td>Открывайте его на самом сервере. Выполните <span class="mono">docker compose ps</span> и <span class="mono">docker compose logs --tail=200 app</span>.</td></tr>
               <tr><td>Telegram сообщает Conflict</td><td>Где-то работает второй экземпляр с тем же токеном. Остановите старый ПК или контейнер.</td></tr>
               <tr><td>Кнопки Telegram не появились</td><td>Отправьте боту <span class="mono">/start</span>. Проверьте журнал приложения.</td></tr>
-              <tr><td>Не приходят сигналы</td><td>Проверьте HAPP, затем <span class="mono">docker compose logs --tail=100 mtproxy</span> и список каналов в панели.</td></tr>
-              <tr><td>Переменная MTPROXY_SECRET отсутствует</td><td>В папке нет скрытого файла <span class="mono">.env</span>. Верните его из переносимого комплекта или заново подготовьте комплект.</td></tr>
+              <tr><td>Не приходят сигналы</td><td>Проверьте HAPP, затем <span class="mono">docker compose logs --tail=200 app</span>, авторизацию Telegram и список каналов в панели.</td></tr>
               <tr><td>Permission denied для Docker</td><td>Выполните <span class="mono">sudo usermod -aG docker "$USER"</span>, затем полностью выйдите из Ubuntu и войдите снова.</td></tr>
               <tr><td>Ошибка времени Bybit</td><td>Проверьте <span class="mono">timedatectl status</span>. Поля NTP service и System clock synchronized должны быть active/yes.</td></tr>
-              <tr><td>MTProxy unhealthy</td><td>Выполните <span class="mono">docker compose logs --tail=100 mtproxy</span> и убедитесь, что HAPP даёт доступ в интернет.</td></tr>
             </tbody>
           </table>
           <h3>Диагностический набор</h3>
@@ -619,7 +617,6 @@ docker compose start app</code></pre>
             <pre><code>cd ~/LialiaBot
 docker compose ps
 docker compose logs --tail=200 app
-docker compose logs --tail=100 mtproxy
 timedatectl status</code></pre>
           </div>
         </section>

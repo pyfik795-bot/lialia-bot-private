@@ -23,7 +23,7 @@ if (Test-Path -LiteralPath $Destination) {
 }
 
 $RequiredFiles = @(
-    ".dockerignore", "Dockerfile", "Dockerfile.mtproxy", "compose.yaml", "requirements.txt",
+    ".dockerignore", "Dockerfile", "compose.yaml", "requirements.txt",
     "prepare-docker.ps1", "export-to-flash.ps1", "DOCKER_TRANSPORT.md", "INSTRUCTION.html",
     "channels.py", "logging_setup.py", "main.py", "parsers.py", "risk.py",
     "settings.py", "signal_parser.py", "stats.py", "status.py", "synctime.py",
@@ -48,7 +48,7 @@ foreach ($Name in $StateFiles) {
         Copy-Item -LiteralPath $Source -Destination (Join-Path $Destination $Name)
     }
 }
-$RequiredDirectories = @("web", "docker")
+$RequiredDirectories = @("web")
 foreach ($Name in $RequiredDirectories) {
     $Source = Join-Path $ProjectDir $Name
     if (-not (Test-Path -LiteralPath $Source -PathType Container)) {
@@ -65,7 +65,7 @@ if ($IncludeDockerImages) {
         docker compose build
         if ($LASTEXITCODE -ne 0) { throw "Could not build the Docker images" }
         docker image save --output (Join-Path $Destination "docker-images.tar") `
-            lialia-bot:portable lialia-mtproxy:portable
+            lialia-bot:portable
         if ($LASTEXITCODE -ne 0) { throw "Could not save the Docker images" }
     } finally {
         Pop-Location

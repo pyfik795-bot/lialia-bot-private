@@ -11,17 +11,7 @@ if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
     throw "config.py was not found: $ConfigPath"
 }
 
-$ConfigText = Get-Content -Raw -Encoding UTF8 -LiteralPath $ConfigPath
-$SecretMatch = [regex]::Match(
-    $ConfigText,
-    '(?m)^\s*PROXY_SECRET\s*=\s*["'']([0-9a-fA-F]{32})["'']\s*$'
-)
-if (-not $SecretMatch.Success) {
-    throw "Could not read a 32-character PROXY_SECRET from config.py"
-}
-
 $Lines = @(
-    "MTPROXY_SECRET=$($SecretMatch.Groups[1].Value.ToLowerInvariant())"
     "LIALIA_WEB_PORT=$WebPort"
     "TZ=Europe/Moscow"
 )

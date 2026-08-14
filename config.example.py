@@ -8,11 +8,6 @@
 API_ID = 0
 API_HASH = "CHANGE_ME"
 
-# Local MTProxy used by the Docker deployment.
-PROXY_ADDRESS = "127.0.0.1"
-PROXY_PORT = 443
-PROXY_SECRET = "CHANGE_ME_32_HEXADECIMAL_CHARS"
-
 # Optional channel seeded on the first start. Channels can also be added in UI.
 CHANNEL = ""
 
