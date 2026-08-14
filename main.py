@@ -19,12 +19,11 @@ from telethon.network import ConnectionTcpMTProxyRandomizedIntermediate
 
 import channels
 import config
-import parsers
 import settings
-import signal_parser
 import status
 import synctime
 import tg_bot
+import telegram_ingest
 import trade_engine
 import webapp
 
@@ -104,32 +103,29 @@ async def main():
     logger.info(f"Дашборд: http://{shown_host}:{config.WEB_PORT} "
                 f"(слушает {config.WEB_HOST}, доступен из локальной сети)")
 
+    ingestor = telegram_ingest.TelegramSignalIngestor(
+        akk,
+        engine,
+        max_signal_age_seconds=int(os.getenv("SIGNAL_MAX_AGE_SECONDS", "600")),
+        poll_interval_seconds=int(os.getenv("TELEGRAM_RECOVERY_POLL_SECONDS", "20")),
+    )
+
     # Слушаем ВСЕ чаты аккаунта (без chats=), а не один жёстко заданный канал -
-    # список разрешённых источников (channels.json) правится через сайт "на лету"
+    # список разрешённых источников (channels.json) правится через сайт "на лету".
+    # Тот же обработчик используется резервным опросом, поэтому короткий обрыв
+    # MTProxy больше не создаёт слепое окно.
     @akk.on(events.NewMessage())
     async def handler(event):
-        if event.chat_id not in channels.get_enabled_ids():
-            return
+        await ingestor.handle_message(event.chat_id, event.message, origin="new_message")
 
-        text = event.message.text
-        if not text:
-            return
+    @akk.on(events.MessageEdited())
+    async def edited_handler(event):
+        await ingestor.handle_message(event.chat_id, event.message, origin="message_edited")
 
-        # Формат сообщения больше не зашит в код: у канала может быть свой
-        # парсер (channels.json -> "parser"), иначе перебираем все из
-        # parsers.json. Отсев не-сигналов делает сам парсер (prefilter).
-        parser_name = channels.get_parser_name(event.chat_id)
-        signal = parsers.parse(text, parser_name)
-        if signal is None:
-            return
-
-        signal_parser.log_parsed_signal(signal)
-        logger.info(f"новый сигнал: {signal['symbol']} {signal['strategy']} "
-                    f"(парсер {signal.get('parser')})")
-
-        # блокирующие HTTP/WS-вызовы Bybit уходят в отдельный поток,
-        # event loop продолжает принимать новые сообщения
-        loop.run_in_executor(None, engine.process_signal, signal)
+    # При старте сначала читаем хвост каналов. Старше десяти минут сообщения
+    # только отмечаются в журнале и никогда не превращаются в запоздалую сделку.
+    await ingestor.poll_once()
+    recovery_task = asyncio.create_task(ingestor.poll_forever())
 
     logger.info("Жду сигналы из подключённых каналов...")
 
@@ -145,6 +141,8 @@ async def main():
     try:
         await akk.run_until_disconnected()
     finally:
+        recovery_task.cancel()
+        await asyncio.gather(recovery_task, return_exceptions=True)
         status.set_flag("telethon_connected", False)
         engine.stop()
         await tg_bot.stop_polling()

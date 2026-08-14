@@ -26,6 +26,7 @@ settings.json
 risk.json
 parsed_signals.json
 processed_signals.json
+telegram_seen_messages.json
 risk_state.json
 trade_history.json
 

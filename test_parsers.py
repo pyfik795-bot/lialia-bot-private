@@ -47,6 +47,24 @@ Target 6: 1.550
 Stop Loss: 1.100
 """
 
+FATPIG_REAL_SHORT_MESSAGE = """📍Coin : #ACE/USDT
+
+🔴 SHORT
+
+👉 Entry: 0.1289 - 0.1324
+
+🌐 Leverage: 20x
+
+🎯 Target 1: 0.1277
+🎯 Target 2: 0.1265
+🎯 Target 3: 0.1252
+🎯 Target 4: 0.1240
+🎯 Target 5: 0.1228
+🎯 Target 6: 0.1214
+
+❌ StopLoss: 0.1350
+"""
+
 
 class GgshotPresetTestCase(unittest.TestCase):
     def parse(self, text=GGSHOT_MESSAGE):
@@ -75,6 +93,18 @@ class GgshotPresetTestCase(unittest.TestCase):
 
 
 class FatpigPresetTestCase(unittest.TestCase):
+    def test_parses_actual_short_message_with_six_targets(self):
+        signal = parsers.parse_with(parsers.FATPIG_PARSER, FATPIG_REAL_SHORT_MESSAGE)
+
+        self.assertEqual(signal["symbol"], "ACEUSDT")
+        self.assertEqual(signal["strategy"], "Short")
+        self.assertEqual(signal["entry_zone"], [0.1289, 0.1324])
+        self.assertEqual(
+            signal["targets"],
+            [0.1277, 0.1265, 0.1252, 0.1240, 0.1228, 0.1214],
+        )
+        self.assertEqual(signal["stop_loss"], 0.1350)
+
     def test_parses_six_targets_and_slashed_symbol(self):
         signal = parsers.parse_with(parsers.FATPIG_PARSER, FATPIG_MESSAGE)
 
