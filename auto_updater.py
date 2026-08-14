@@ -53,6 +53,7 @@ def _write_log(project_dir: Path, message: str):
 def _git(project_dir: Path, *args: str, timeout: int = DEFAULT_TIMEOUT_SECONDS):
     environment = os.environ.copy()
     environment["GIT_TERMINAL_PROMPT"] = "0"
+    environment["GCM_INTERACTIVE"] = "Never"
     github_token = environment.get("GITHUB_TOKEN", "").strip()
     if github_token:
         basic = base64.b64encode(f"x-access-token:{github_token}".encode("utf-8")).decode("ascii")

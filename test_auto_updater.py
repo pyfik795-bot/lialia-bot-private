@@ -94,6 +94,7 @@ class AutoUpdaterTestCase(unittest.TestCase):
         environment = run_mock.call_args.kwargs["env"]
         self.assertNotIn(token, " ".join(command))
         self.assertIn("AUTHORIZATION: basic ", environment["GIT_CONFIG_VALUE_0"])
+        self.assertEqual(environment["GCM_INTERACTIVE"], "Never")
 
 
 if __name__ == "__main__":
