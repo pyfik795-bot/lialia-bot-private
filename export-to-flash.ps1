@@ -25,7 +25,8 @@ if (Test-Path -LiteralPath $Destination) {
 $RequiredFiles = @(
     ".dockerignore", "Dockerfile", "compose.yaml", "requirements.txt",
     "prepare-docker.ps1", "export-to-flash.ps1", "DOCKER_TRANSPORT.md", "INSTRUCTION.html",
-    "auto_updater.py", "channels.py", "logging_setup.py", "main.py", "parsers.py", "risk.py",
+    "auto_updater.py", "bot_control.pyw", "bot_control_core.py", "launch-bot-control.vbs",
+    "channels.py", "logging_setup.py", "main.py", "parsers.py", "risk.py",
     "settings.py", "signal_parser.py", "stats.py", "status.py", "synctime.py",
     "tg_bot.py", "trade_engine.py", "webapp.py", "config.py"
 )
