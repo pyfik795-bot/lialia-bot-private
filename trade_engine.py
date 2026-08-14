@@ -560,13 +560,24 @@ class BotEngine:
         for signal_id in _load_json_list(config.PROCESSED_SIGNALS_FILE):
             self.processed_signal_ids.add(signal_id)
 
+        showcase_found = False
         for trade_data in _load_json_list(config.ACTIVE_TRADES_FILE):
+            # Визуальный макет для демонстрации панели не является позицией на
+            # бирже. После перезапуска просто убираем его, не сверяем с Bybit и
+            # не записываем в историю как якобы закрытую сделку.
+            if trade_data.get("showcase_fake"):
+                showcase_found = True
+                logger.info("Демонстрационная fake-сделка удалена при запуске")
+                continue
             try:
                 trade = TradeManager.from_dict(trade_data, notifier=self.notify)
                 self.trades[trade.symbol] = trade
                 logger.info(f"[{trade.symbol}] Сделка восстановлена из {config.ACTIVE_TRADES_FILE} после рестарта")
             except Exception as e:
                 logger.warning(f"Не удалось восстановить сделку из состояния: {e}")
+
+        if showcase_found:
+            self._save_active_trades()
 
     def _reconcile_with_exchange(self):
         """Сверяет восстановленные сделки с реальными позициями на бирже.

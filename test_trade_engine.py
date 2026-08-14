@@ -399,6 +399,32 @@ class ReconcileTestCase(unittest.TestCase):
         self.assertIn("BTCUSDT", self.engine.trades)
 
 
+class ShowcaseStateTestCase(unittest.TestCase):
+    """Визуальная fake-сделка не должна превращаться в биржевую позицию."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self._saved = (config.ACTIVE_TRADES_FILE, config.PROCESSED_SIGNALS_FILE)
+        config.ACTIVE_TRADES_FILE = os.path.join(self.tmp, "active.json")
+        config.PROCESSED_SIGNALS_FILE = os.path.join(self.tmp, "processed.json")
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        config.ACTIVE_TRADES_FILE, config.PROCESSED_SIGNALS_FILE = self._saved
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_showcase_trade_is_removed_without_loading(self):
+        with open(config.ACTIVE_TRADES_FILE, "w", encoding="utf-8") as file:
+            json.dump([{"symbol": "FAKEUSDT", "showcase_fake": True}], file)
+
+        engine = trade_engine.BotEngine(notifier=lambda _t: None)
+        engine._load_state()
+
+        self.assertEqual(engine.trades, {})
+        with open(config.ACTIVE_TRADES_FILE, "r", encoding="utf-8") as file:
+            self.assertEqual(json.load(file), [])
+
+
 class OrderEventTestCase(unittest.TestCase):
     """Поток ордеров смотрит только на свои orderId - чужие события не трогают сделку."""
 
