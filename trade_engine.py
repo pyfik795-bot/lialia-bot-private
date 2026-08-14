@@ -263,6 +263,49 @@ class TradeManager:
         resp = get_session().get_tickers(category=config.CATEGORY, symbol=self.symbol)
         return float(resp["result"]["list"][0]["lastPrice"])
 
+    def repair_thousands_separator(self, price: float) -> bool:
+        """Исправляет цены вида ``62.806``, когда точка означает 62 806.
+
+        Автокоррекция применяется только при очень явном разрыве масштаба:
+        все уровни примерно в тысячу раз меньше рынка, после умножения
+        оказываются рядом с ним и образуют корректную геометрию Long/Short.
+        Обычные дробные цены вроде 0.5426 и 1.300 не затрагиваются.
+        """
+        levels = [float(self.initial_sl), *(float(target) for target in self.targets)]
+        if not levels or any(level <= 0 for level in levels) or price <= 0:
+            return False
+
+        center = sorted(levels)[len(levels) // 2]
+        ratio = price / center
+        if not 100 <= ratio <= 2_000:
+            return False
+
+        scaled_sl = float(self.initial_sl) * 1_000
+        scaled_targets = [float(target) * 1_000 for target in self.targets]
+        scaled_center = center * 1_000
+        if not 0.5 <= scaled_center / price <= 2.0:
+            return False
+
+        if self.side == "Buy":
+            geometry_ok = scaled_sl < price and any(target > price for target in scaled_targets)
+        else:
+            geometry_ok = scaled_sl > price and any(target < price for target in scaled_targets)
+        if not geometry_ok:
+            return False
+
+        before = [self.initial_sl, *self.targets]
+        self.initial_sl = scaled_sl
+        self.current_sl = scaled_sl
+        self.targets = scaled_targets
+        logger.warning(
+            "[%s] Точка распознана как разделитель тысяч: уровни %s -> SL %s, TP %s",
+            self.symbol,
+            before,
+            self.initial_sl,
+            self.targets,
+        )
+        return True
+
     def validate_levels(self, price: float):
         """Проверяет геометрию сигнала по текущей цене - до отправки ордера.
 
@@ -298,6 +341,7 @@ class TradeManager:
     def open_position(self):
         self.set_leverage()
         price = self.get_last_price()
+        self.repair_thousands_separator(price)
         self.validate_levels(price)
         self.qty_total = calc_qty_from_margin(self.symbol, self.margin_usdt, self.leverage, price)
         notional = self.margin_usdt * self.leverage

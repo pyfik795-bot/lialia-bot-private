@@ -347,6 +347,40 @@ class ValidateLevelsTestCase(unittest.TestCase):
             trade.validate_levels(61500.0)
         self.assertIn("уже пройдены", "\n".join(logs.output))
 
+    def test_dotted_thousands_are_repaired_for_btc(self):
+        signal = {
+            "symbol": "BTCUSDT",
+            "strategy": "Long",
+            "targets": [70.806, 75.806, 80.806, 85.806],
+            "stop_loss": 61.806,
+            "signal_id": "dotted-thousands",
+        }
+        trade = trade_engine.TradeManager(signal, notifier=lambda _t: None)
+
+        with self.assertLogs("trade_engine", level="WARNING"):
+            repaired = trade.repair_thousands_separator(62847.1)
+        trade.validate_levels(62847.1)
+
+        self.assertTrue(repaired)
+        self.assertEqual(trade.initial_sl, 61806.0)
+        self.assertEqual(trade.targets, [70806.0, 75806.0, 80806.0, 85806.0])
+
+    def test_normal_fractional_prices_are_not_scaled(self):
+        signal = {
+            "symbol": "ACEUSDT",
+            "strategy": "Long",
+            "targets": [1.300, 1.350, 1.400, 1.450],
+            "stop_loss": 1.100,
+            "signal_id": "normal-decimals",
+        }
+        trade = trade_engine.TradeManager(signal, notifier=lambda _t: None)
+
+        repaired = trade.repair_thousands_separator(1.25)
+        trade.validate_levels(1.25)
+
+        self.assertFalse(repaired)
+        self.assertEqual(trade.targets[0], 1.3)
+
 
 class ReconcileTestCase(unittest.TestCase):
     """Сверка восстановленных сделок с биржей при старте."""
