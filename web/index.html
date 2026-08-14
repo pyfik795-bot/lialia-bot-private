@@ -622,6 +622,93 @@
   .side-nav-item.active .side-icon { background: rgba(255,51,68,.16); }
   .side-copy strong { display: block; margin-top: 1px; color: inherit; font-size: 13px; }
   .side-copy small { display: block; margin-top: 3px; color: #66666f; font-size: 10px; font-weight: 500; }
+  .lialia-mood {
+    margin-top: 13px;
+    padding-top: 13px;
+    border-top: 1px solid #202024;
+  }
+  .lialia-mood-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 3px 8px;
+    color: #5f5f68;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+  .lialia-mood-head span:first-child { color: rgba(255, 68, 84, .72); }
+  .lialia-mood-frame {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #27272c;
+    border-radius: 14px;
+    background: #090a0d;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.015);
+    cursor: pointer;
+  }
+  .lialia-mood-frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent 52%, rgba(4,5,8,.5));
+  }
+  .lialia-mood-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    filter: saturate(.72) brightness(.72) contrast(.96);
+    transform: scale(1.025);
+    transition: opacity .7s ease, filter .25s ease, transform 5s ease;
+  }
+  .lialia-mood-image.active { opacity: .62; transform: scale(1); }
+  .lialia-mood-frame:hover .lialia-mood-image.active,
+  .lialia-mood-frame:focus-visible .lialia-mood-image.active {
+    opacity: .94;
+    filter: saturate(.9) brightness(.9) contrast(1);
+  }
+  .lialia-mood-frame:hover {
+    transform: none;
+    filter: none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.015);
+  }
+  .lialia-mood-frame:focus-visible { outline: 2px solid rgba(255,51,68,.55); outline-offset: 2px; }
+  .lialia-mood-caption {
+    position: absolute;
+    right: 9px;
+    bottom: 8px;
+    z-index: 3;
+    padding: 3px 6px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 999px;
+    background: rgba(7,8,11,.68);
+    color: #a2a2aa;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .08em;
+  }
+  .lialia-mood-dots { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
+  .lialia-mood-dot {
+    width: 18px;
+    height: 3px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #2a2a30;
+    box-shadow: none;
+  }
+  .lialia-mood-dot:hover { transform: none; background: #46464f; box-shadow: none; }
+  .lialia-mood-dot.active { background: rgba(255,51,68,.75); }
   .workspace { min-width: 0; }
   .workspace-head {
     display: flex;
@@ -654,6 +741,7 @@
       border-radius: 16px;
     }
     .sidebar-title { display: none; }
+    .lialia-mood { display: none; }
     .side-nav-item {
       display: flex;
       flex: 0 0 auto;
@@ -671,6 +759,9 @@
     .workspace-head { display: block; }
     .workspace-description { margin-top: 7px; text-align: left; }
     .workspace-head h2 { font-size: 22px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lialia-mood-image { transition: none; }
   }
 </style>
 </head>
@@ -718,6 +809,22 @@
     <button type="button" class="side-nav-item" data-page="parsers">
       <span class="side-icon">{ }</span><span class="side-copy"><strong>Парсеры</strong><small>Форматы сообщений</small></span>
     </button>
+    <div class="lialia-mood" aria-label="Ляля mood">
+      <div class="lialia-mood-head"><span>Ляля mood</span><span id="lialia-mood-count">01 / 04</span></div>
+      <button type="button" class="lialia-mood-frame" id="lialia-mood-next" aria-label="Показать следующую картинку">
+        <img class="lialia-mood-image active" src="/assets/lialia-1.jpeg" alt="Ляля выглядывает из машины" loading="lazy" decoding="async" fetchpriority="low">
+        <img class="lialia-mood-image" src="/assets/lialia-2.jpeg" alt="Фиолетовая Ляля" loading="lazy" decoding="async" fetchpriority="low">
+        <img class="lialia-mood-image" src="/assets/lialia-3.jpeg" alt="Ляля и свобода слова" loading="lazy" decoding="async" fetchpriority="low">
+        <img class="lialia-mood-image" src="/assets/lialia-4.jpeg" alt="Ляля и связь" loading="lazy" decoding="async" fetchpriority="low">
+        <span class="lialia-mood-caption">нажми →</span>
+      </button>
+      <div class="lialia-mood-dots" aria-label="Выбор картинки">
+        <button type="button" class="lialia-mood-dot active" data-mood-index="0" aria-label="Картинка 1"></button>
+        <button type="button" class="lialia-mood-dot" data-mood-index="1" aria-label="Картинка 2"></button>
+        <button type="button" class="lialia-mood-dot" data-mood-index="2" aria-label="Картинка 3"></button>
+        <button type="button" class="lialia-mood-dot" data-mood-index="3" aria-label="Картинка 4"></button>
+      </div>
+    </div>
   </aside>
   <main class="workspace">
     <div class="workspace-head">
@@ -1047,6 +1154,42 @@ document.querySelectorAll(".side-nav-item").forEach(button => {
   button.addEventListener("click", () => showWorkspacePage(button.dataset.page));
 });
 showWorkspacePage(location.hash.slice(1) || "overview", false);
+
+const moodImages = Array.from(document.querySelectorAll(".lialia-mood-image"));
+const moodDots = Array.from(document.querySelectorAll(".lialia-mood-dot"));
+const moodCounter = document.getElementById("lialia-mood-count");
+let moodIndex = 0;
+let moodTimer = null;
+
+function showMood(index) {
+  if (!moodImages.length) return;
+  moodIndex = (index + moodImages.length) % moodImages.length;
+  moodImages.forEach((image, imageIndex) => {
+    const active = imageIndex === moodIndex;
+    image.classList.toggle("active", active);
+    image.setAttribute("aria-hidden", active ? "false" : "true");
+  });
+  moodDots.forEach((dot, dotIndex) => dot.classList.toggle("active", dotIndex === moodIndex));
+  moodCounter.textContent = `${String(moodIndex + 1).padStart(2, "0")} / ${String(moodImages.length).padStart(2, "0")}`;
+}
+
+function restartMoodTimer() {
+  if (moodTimer) clearInterval(moodTimer);
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    moodTimer = setInterval(() => showMood(moodIndex + 1), 12000);
+  }
+}
+
+document.getElementById("lialia-mood-next")?.addEventListener("click", () => {
+  showMood(moodIndex + 1);
+  restartMoodTimer();
+});
+moodDots.forEach(dot => dot.addEventListener("click", () => {
+  showMood(Number(dot.dataset.moodIndex));
+  restartMoodTimer();
+}));
+showMood(0);
+restartMoodTimer();
 
 const fmt = (n, d = 2) => (typeof n === "number" ? n.toFixed(d) : "—");
 

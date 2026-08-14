@@ -103,6 +103,21 @@ class WebappTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(resp.status, 200)
         self.assertIn("demo", await resp.json())
 
+    async def test_dashboard_mood_gallery_and_assets(self):
+        await self.login(config.WEB_PASSWORD)
+
+        page = await self.client.get("/")
+        html = await page.text()
+        self.assertIn("Ляля mood", html)
+        self.assertIn("/assets/lialia-1.jpeg", html)
+
+        for index in range(1, 5):
+            with self.subTest(index=index):
+                asset = await self.client.get(f"/assets/lialia-{index}.jpeg")
+                self.assertEqual(asset.status, 200)
+                self.assertEqual(asset.content_type, "image/jpeg")
+                self.assertGreater(len(await asset.read()), 20_000)
+
     async def test_wrong_cookie_is_rejected(self):
         self.client.session.cookie_jar.update_cookies({webapp.COOKIE_NAME: "poddelka"})
 

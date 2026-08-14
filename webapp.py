@@ -338,6 +338,7 @@ def build_app(akk=None) -> web.Application:
     app[AKK_KEY] = akk
 
     app.router.add_get("/", index)
+    app.router.add_static("/assets/", STATIC_DIR / "assets", name="assets")
     app.router.add_post("/api/login", api_login)
     app.router.add_post("/api/logout", api_logout)
     app.router.add_get("/api/status", api_status)
