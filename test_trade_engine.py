@@ -255,9 +255,17 @@ class StopLossLadderTestCase(unittest.TestCase):
         trade.on_tp_filled(2)
         trade.on_tp_filled(3)
 
-        # TP1 -> безубыток, TP2 -> уровень TP1, TP3 -> уровень TP2
-        self.assertEqual(self.moves, [60000.0, 61000.0, 62000.0])
+        # TP1 -> -15% от входа, TP2 -> уровень TP1, TP3 -> уровень TP2
+        self.assertEqual(self.moves, [51000.0, 61000.0, 62000.0])
         self.assertEqual(trade.current_sl, 62000.0)
+
+    def test_tp1_moves_short_stop_fifteen_percent_above_entry(self):
+        trade = self.make_trade("Short")
+
+        trade.on_tp_filled(1)
+
+        self.assertEqual(self.moves, [69000.0])
+        self.assertEqual(trade.current_sl, 69000.0)
 
     def test_out_of_order_fills_never_pull_stop_back(self):
         """TP2 обработан раньше TP1 - стоп обязан остаться на уровне TP1.
@@ -270,7 +278,7 @@ class StopLossLadderTestCase(unittest.TestCase):
 
         trade.on_tp_filled(2)          # стоп -> уровень TP1 (61000)
         with self.assertLogs("trade_engine", level="WARNING") as logs:
-            trade.on_tp_filled(1)      # запоздавший TP1 просит вернуть в 60000
+            trade.on_tp_filled(1)      # запоздавший TP1 просит вернуть в 51000
 
         self.assertIn("оставляю стоп на месте", "\n".join(logs.output))
         self.assertEqual(trade.current_sl, 61000.0, "стоп откатился назад к точке входа")
@@ -292,7 +300,7 @@ class StopLossLadderTestCase(unittest.TestCase):
         trade.on_tp_filled(1)
         trade.on_tp_filled(1)
 
-        self.assertEqual(self.moves, [60000.0])
+        self.assertEqual(self.moves, [51000.0])
 
     def test_last_tp_does_not_move_stop(self):
         trade = self.make_trade()

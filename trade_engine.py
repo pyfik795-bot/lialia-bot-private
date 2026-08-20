@@ -7,7 +7,7 @@
 - реальные лимитные TP-ордера (reduce-only) на бирже - столько, сколько
   тейков пришло в сигнале (каналы дают и 4, и 6)
 - приватный WebSocket слушает исполнение ордеров:
-    TP1 -> SL в безубыток, дальше каждый TP двигает SL на уровень предыдущего,
+    TP1 -> SL на 15% ниже/выше цены входа, дальше каждый TP двигает SL на уровень предыдущего,
     последний TP закрывает позицию
 - автопереподключение WebSocket (watchdog по "тишине" в канале)
 
@@ -430,7 +430,7 @@ class TradeManager:
             return True
         return new_price > self.current_sl if self.side == "Buy" else new_price < self.current_sl
 
-    def move_stop_loss(self, new_price: float, reason: str) -> bool:
+    def move_stop_loss(self, new_price: float, reason: str, allow_worse: bool = False) -> bool:
         """Переносит стоп, если это движение в сторону прибыли.
 
         Откат назад запрещён: тейки могут исполниться в один тик, когда цена
@@ -439,7 +439,7 @@ class TradeManager:
         TP2 раньше TP1, и TP1 стянул бы стоп с уровня TP1 обратно в точку
         входа, отдав уже зафиксированную прибыль.
         """
-        if not self.improves_stop(new_price):
+        if not allow_worse and not self.improves_stop(new_price):
             logger.warning(
                 f"[{self.symbol}] SL {new_price} не лучше текущего {self.current_sl} "
                 f"({reason}) - оставляю стоп на месте"
@@ -465,8 +465,16 @@ class TradeManager:
 
         last = len(self.targets)
         if tp_index == 1:
-            # первый тейк убирает риск: стоп в цену входа
-            self.move_stop_loss(self.entry_price, "TP1 достигнут -> перенос в безубыток")
+            # После TP1 допускаем ровно один перенос стопа на -15% от входа.
+            # Если TP2 уже пришёл раньше, защиту от отката сохраняем.
+            multiplier = 0.85 if self.side == "Buy" else 1.15
+            tp1_stop = self.entry_price * multiplier
+            tp2_or_later_filled = any(index > 1 for index in self.tp_filled)
+            self.move_stop_loss(
+                tp1_stop,
+                "TP1 достигнут -> перенос на -15% от цены входа",
+                allow_worse=not tp2_or_later_filled,
+            )
         elif tp_index < last:
             # дальше стоп идёт по пятам: на уровень предыдущего тейка
             self.move_stop_loss(self.targets[tp_index - 2],
@@ -705,7 +713,7 @@ class BotEngine:
         logger.warning("WebSocket: пересоздаю соединение...")
         status.set_flag("bybit_ws_connected", False)
         # Пока сокет лежит, исполнение тейков до нас не доходит: стоп не
-        # переезжает в безубыток и не идёт по лестнице. Молчать об этом нельзя
+        # переставляется после тейков и не идёт по лестнице. Молчать об этом нельзя
         self.notify("⚠️ Связь с Bybit потеряна, переподключаюсь.\n"
                     "Позиции на бирже остаются со стопами и тейками, но перенос "
                     "стопа за тейками пока приостановлен.")
@@ -1002,7 +1010,7 @@ class BotEngine:
                 # он приходит с size=0. Раньше такой снимок, попав в это окно,
                 # записывал ещё не открытую сделку в историю как закрытую по
                 # стоп-лоссу: позиция потом висела на бирже без сопровождения -
-                # стоп не переезжал в безубыток и не шёл по лестнице за
+                # стоп не переставлялся после тейков и не шёл по лестнице за
                 # тейками, а в истории оставался фальшивый убыток, который
                 # риск-менеджер считал за серию проигрышей.
                 if trade.entry_price is None:
