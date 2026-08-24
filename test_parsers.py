@@ -78,6 +78,19 @@ FATPIG_REAL_SHORT_MESSAGE = """📍Coin : #ACE/USDT
 ❌ StopLoss: 0.1350
 """
 
+FATPIG_INLINE_TARGETS_MESSAGE = """⚡ #SUPER/USDT
+
+📥 Long
+
+📈 Buy: 0.1110 - 0.1080
+
+🎯 Target: 0.1121 - 0.1133 - 0.1144 - 0.1155 - 0.1166 - 0.1177
+
+📌 StopLoss: 0.1060
+
+⚪ Leverage: 20x
+"""
+
 
 class GgshotPresetTestCase(unittest.TestCase):
     def parse(self, text=GGSHOT_MESSAGE):
@@ -160,6 +173,15 @@ class FatpigPresetTestCase(unittest.TestCase):
         second = parsers.parse_with(parsers.FATPIG_PARSER, FATPIG_MESSAGE + "\n(повтор)")
 
         self.assertEqual(first["signal_id"], second["signal_id"])
+
+    def test_parses_inline_targets_format(self):
+        signal = parsers.parse_with(parsers.FATPIG_PARSER, FATPIG_INLINE_TARGETS_MESSAGE)
+
+        self.assertIsNotNone(signal)
+        self.assertEqual(signal["symbol"], "SUPERUSDT")
+        self.assertEqual(signal["strategy"], "Long")
+        self.assertEqual(signal["targets"], [0.1121, 0.1133, 0.1144, 0.1155, 0.1166, 0.1177])
+        self.assertEqual(signal["stop_loss"], 0.1060)
 
 
 class TargetLadderTestCase(unittest.TestCase):

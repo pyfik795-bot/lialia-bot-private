@@ -102,6 +102,9 @@ FATPIG_PARSER = {
         "stop_loss": r"Stop\s*-?\s*Loss\s*:\s*\**\s*([\d.,*]+)",
     },
     "targets": r"Target\s*\d+\s*:\s*\**\s*([\d.,*]+)",
+    # В части постов все шесть тейков перечислены в одной строке:
+    # "Target: 0.1121 - 0.1133 - ...".
+    "targets_inline": r"Target\s*:\s*([^\r\n]+)",
     "entry_zone": r"Entry\s*:\s*\**\s*([\d.,*]+)\s*[-–—]\s*([\d.,*]+)",
     "tp_percents": [20.0, 20.0, 15.0, 15.0, 15.0, 15.0],
 }
@@ -126,6 +129,17 @@ def _load() -> list:
             return [dict(p) for p in PRESETS]
     if not isinstance(data, list) or not data:
         return [dict(p) for p in PRESETS]
+
+    # Пользовательские parsers.json переживают обновления кода. Добавляем
+    # новый необязательный шаблон в уже сохранённый Fat Pig-парсер, не меняя
+    # настроенные пользователем поля и не создавая второй парсер.
+    changed = False
+    for parser in data:
+        if parser.get("name") == FATPIG_PARSER["name"] and not parser.get("targets_inline"):
+            parser["targets_inline"] = FATPIG_PARSER["targets_inline"]
+            changed = True
+    if changed:
+        _save(data)
     return data
 
 
@@ -177,6 +191,8 @@ def validate(parser: dict) -> dict:
     # переставал разбираться
     to_check = dict(fields)
     to_check["targets"] = parser["targets"]
+    if parser.get("targets_inline"):
+        to_check["targets_inline"] = parser["targets_inline"]
     if parser.get("entry_zone"):
         to_check["entry_zone"] = parser["entry_zone"]
 
@@ -200,6 +216,8 @@ def validate(parser: dict) -> dict:
     }
     if parser.get("entry_zone"):
         cleaned["entry_zone"] = parser["entry_zone"].strip()
+    if parser.get("targets_inline"):
+        cleaned["targets_inline"] = parser["targets_inline"].strip()
 
     # Своя разбивка объёма - нужна форматам, где тейков не четыре
     percents = parser.get("tp_percents")
@@ -354,6 +372,16 @@ def parse_with(parser: dict, raw_text: str) -> dict | None:
     # Тейков должно быть разумное количество: одного мало для лестницы стопа,
     # а десяток - признак того, что regex цепляет лишнее (например, цифры из
     # чужого сообщения, склеенного в одну простыню)
+    if not (MIN_TARGETS <= len(target_matches) <= MAX_TARGETS) and parser.get("targets_inline"):
+        try:
+            inline_match = re.search(parser["targets_inline"], raw_text, re.IGNORECASE)
+        except re.error:
+            inline_match = None
+        if inline_match:
+            # Внутри строки берём только числа: разделитель может быть обычным
+            # или длинным тире, а часть сообщений приходит с Markdown.
+            target_matches = re.findall(r"\d+(?:[.,]\d+)?", inline_match.group(1))
+
     if not (MIN_TARGETS <= len(target_matches) <= MAX_TARGETS):
         return None
 
