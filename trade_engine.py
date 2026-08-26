@@ -689,6 +689,10 @@ class BotEngine:
             ping_timeout=10,
             restart_on_error=True,
             retries=10,
+            # pybit adds this interval to its WebSocket auth expiration.  REST
+            # timestamps deliberately lag Bybit for ErrCode 10002 safety, so
+            # the default one-second interval could already be expired.
+            private_auth_expire=2,
         )
         ws.order_stream(callback=self._handle_order_event)
         ws.position_stream(callback=self._handle_position_event)
