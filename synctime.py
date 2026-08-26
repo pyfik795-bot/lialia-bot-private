@@ -41,7 +41,11 @@ _last_refresh_mono: float = 0.0   # time.monotonic() последней попы
 
 _REFRESH_INTERVAL = 60         # секунд между сверками часов с биржей
 _SAMPLES = 3                   # замеров за сверку; берём тот, где RTT меньше
-_SAFETY_LAG_MS = 100           # намеренно держимся чуть позади биржи
+# Bybit permits a client timestamp to be at most 1000 ms ahead of its clock.
+# Leave a larger margin than the normal network jitter: being a little behind is
+# safe because RECV_WINDOW permits it, whereas a timestamp just ahead is rejected
+# with ErrCode 10002.
+_SAFETY_LAG_MS = 1_500         # намеренно держимся с запасом позади биржи
 
 _stop_event = threading.Event()
 _worker: threading.Thread | None = None

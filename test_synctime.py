@@ -106,14 +106,18 @@ class SyncTimeTestCase(unittest.TestCase):
         synctime.refresh()
 
         self.assertTrue(synctime.is_synced())
-        self.assertLess(abs(self.drift_from_server_ms()), 200)
+        self.assertLess(
+            abs(self.drift_from_server_ms() + synctime._SAFETY_LAG_MS), 200
+        )
 
     def test_offset_applied_when_local_clock_runs_fast(self):
         """Реальный случай из логов: часы ПК убежали вперёд на секунду."""
         self.bybit.server_ahead_ms = -1001
         synctime.refresh()
 
-        self.assertLess(abs(self.drift_from_server_ms()), 200)
+        self.assertLess(
+            abs(self.drift_from_server_ms() + synctime._SAFETY_LAG_MS), 200
+        )
 
     def test_rtt_is_compensated(self):
         """Задержка сети не должна утекать в смещение как ошибка.
@@ -125,7 +129,7 @@ class SyncTimeTestCase(unittest.TestCase):
         self.bybit.rtt_ms = 400
         synctime.refresh()
 
-        self.assertLess(abs(synctime.offset_ms()), 250,
+        self.assertLess(abs(synctime.offset_ms() + synctime._SAFETY_LAG_MS), 250,
                         "смещение поймало RTT вместо реального расхождения часов")
 
     def test_never_ahead_of_server(self):
@@ -206,7 +210,10 @@ class SyncTimeTestCase(unittest.TestCase):
             self.bybit.server_ahead_ms = -int(
                 (self.clock.wall - 1_700_000_000.0) * drift_per_sec * 1000)
 
-        self.assertLess(abs(self.drift_from_server_ms()), BYBIT_AHEAD_LIMIT_MS / 2)
+        self.assertLess(
+            abs(self.drift_from_server_ms() + synctime._SAFETY_LAG_MS),
+            BYBIT_AHEAD_LIMIT_MS / 2,
+        )
 
     def test_background_sync_refreshes_periodically(self):
         """Фоновый поток сам поддерживает смещение свежим."""
