@@ -7,7 +7,7 @@
 - реальные лимитные TP-ордера (reduce-only) на бирже - столько, сколько
   тейков пришло в сигнале (каналы дают и 4, и 6)
 - приватный WebSocket слушает исполнение ордеров:
-    TP1 -> SL на 15% ниже/выше цены входа, дальше каждый TP двигает SL на уровень предыдущего,
+    каждый непоследний TP -> SL на 10% ниже/выше цены достигнутого TP,
     последний TP закрывает позицию
 - автопереподключение WebSocket (watchdog по "тишине" в канале)
 
@@ -464,21 +464,19 @@ class TradeManager:
         logger.info(f"[{self.symbol}] TP{tp_index} исполнен")
 
         last = len(self.targets)
-        if tp_index == 1:
-            # После TP1 допускаем ровно один перенос стопа на -15% от входа.
-            # Если TP2 уже пришёл раньше, защиту от отката сохраняем.
-            multiplier = 0.85 if self.side == "Buy" else 1.15
-            tp1_stop = self.entry_price * multiplier
-            tp2_or_later_filled = any(index > 1 for index in self.tp_filled)
+        if tp_index < last:
+            # После каждого достигнутого тейка ставим стоп на 10% хуже цены
+            # именно этого тейка. События Bybit могут прийти не по порядку,
+            # поэтому запоздавший ранний TP не должен оттянуть стоп назад.
+            multiplier = 0.90 if self.side == "Buy" else 1.10
+            reached_tp = self.targets[tp_index - 1]
+            tp_stop = reached_tp * multiplier
+            later_tp_filled = any(index > tp_index for index in self.tp_filled)
             self.move_stop_loss(
-                tp1_stop,
-                "TP1 достигнут -> перенос на -15% от цены входа",
-                allow_worse=not tp2_or_later_filled,
+                tp_stop,
+                f"TP{tp_index} достигнут -> перенос на -10% от цены TP{tp_index}",
+                allow_worse=not later_tp_filled,
             )
-        elif tp_index < last:
-            # дальше стоп идёт по пятам: на уровень предыдущего тейка
-            self.move_stop_loss(self.targets[tp_index - 2],
-                                f"TP{tp_index} достигнут -> перенос на уровень TP{tp_index - 1}")
         # последний TP: позиция закрыта целиком, двигать SL уже некуда
 
         price = self.targets[tp_index - 1]
