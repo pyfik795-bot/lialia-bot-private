@@ -255,17 +255,17 @@ class StopLossLadderTestCase(unittest.TestCase):
         trade.on_tp_filled(2)
         trade.on_tp_filled(3)
 
-        # Каждый непоследний TP -> на 10% ниже цены достигнутого TP.
-        self.assertEqual(self.moves, [54900.0, 55800.0, 56700.0])
-        self.assertEqual(trade.current_sl, 56700.0)
+        # Каждый непоследний TP -> на 5% ниже цены достигнутого TP.
+        self.assertEqual(self.moves, [57950.0, 58900.0, 59850.0])
+        self.assertEqual(trade.current_sl, 59850.0)
 
-    def test_tp1_moves_short_stop_ten_percent_above_reached_tp(self):
+    def test_tp1_moves_short_stop_five_percent_above_reached_tp(self):
         trade = self.make_trade("Short")
 
         trade.on_tp_filled(1)
 
-        self.assertEqual(self.moves, [64900.0])
-        self.assertEqual(trade.current_sl, 64900.0)
+        self.assertEqual(self.moves, [61950.0])
+        self.assertEqual(trade.current_sl, 61950.0)
 
     def test_out_of_order_fills_never_pull_stop_back(self):
         """TP2 обработан раньше TP1 - стоп обязан остаться на уровне TP1.
@@ -276,23 +276,23 @@ class StopLossLadderTestCase(unittest.TestCase):
         """
         trade = self.make_trade()
 
-        trade.on_tp_filled(2)          # стоп -> 10% ниже TP2 (55800)
+        trade.on_tp_filled(2)          # стоп -> 5% ниже TP2 (58900)
         with self.assertLogs("trade_engine", level="WARNING") as logs:
-            trade.on_tp_filled(1)      # запоздавший TP1 просит вернуть в 54900
+            trade.on_tp_filled(1)      # запоздавший TP1 просит вернуть в 57950
 
         self.assertIn("оставляю стоп на месте", "\n".join(logs.output))
-        self.assertEqual(trade.current_sl, 55800.0, "стоп откатился назад")
-        self.assertEqual(self.moves, [55800.0], "на биржу ушёл лишний перенос стопа")
+        self.assertEqual(trade.current_sl, 58900.0, "стоп откатился назад")
+        self.assertEqual(self.moves, [58900.0], "на биржу ушёл лишний перенос стопа")
 
     def test_out_of_order_fills_for_short(self):
         """Для шорта «в сторону прибыли» - это вниз."""
         trade = self.make_trade("Short")
 
-        trade.on_tp_filled(2)          # стоп -> 10% выше TP2 (63800)
+        trade.on_tp_filled(2)          # стоп -> 5% выше TP2 (60900)
         with self.assertLogs("trade_engine", level="WARNING"):
-            trade.on_tp_filled(1)      # запоздавший TP1 просит вернуть в 64900
+            trade.on_tp_filled(1)      # запоздавший TP1 просит вернуть в 61950
 
-        self.assertEqual(trade.current_sl, 63800.0)
+        self.assertEqual(trade.current_sl, 60900.0)
 
     def test_duplicate_fill_is_ignored(self):
         trade = self.make_trade()
@@ -300,7 +300,7 @@ class StopLossLadderTestCase(unittest.TestCase):
         trade.on_tp_filled(1)
         trade.on_tp_filled(1)
 
-        self.assertEqual(self.moves, [54900.0])
+        self.assertEqual(self.moves, [57950.0])
 
     def test_last_tp_does_not_move_stop(self):
         trade = self.make_trade()
