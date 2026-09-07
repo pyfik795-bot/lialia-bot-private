@@ -217,7 +217,7 @@ class EmergencyStopTestCase(unittest.TestCase):
 
 
 class StopLossLadderTestCase(unittest.TestCase):
-    """Лестница стопа: он идёт за тейками и никогда не откатывается назад."""
+    """После TP1 стоп получает запас 6%, после TP2 остаётся в безубытке."""
 
     def setUp(self):
         # подменяем только сеть - логика move_stop_loss гоняется настоящая,
@@ -255,20 +255,19 @@ class StopLossLadderTestCase(unittest.TestCase):
         trade.on_tp_filled(2)
         trade.on_tp_filled(3)
 
-        # Каждый непоследний TP -> на 5% ниже цены достигнутого TP.
-        self.assertEqual(self.moves, [57950.0, 58900.0, 59850.0])
-        self.assertEqual(trade.current_sl, 59850.0)
+        self.assertEqual(self.moves, [56400.0, 60000.0])
+        self.assertEqual(trade.current_sl, 60000.0)
 
-    def test_tp1_moves_short_stop_five_percent_above_reached_tp(self):
+    def test_tp1_moves_short_stop_six_percent_above_entry(self):
         trade = self.make_trade("Short")
 
         trade.on_tp_filled(1)
 
-        self.assertEqual(self.moves, [61950.0])
-        self.assertEqual(trade.current_sl, 61950.0)
+        self.assertEqual(self.moves, [63600.0])
+        self.assertEqual(trade.current_sl, 63600.0)
 
     def test_out_of_order_fills_never_pull_stop_back(self):
-        """TP2 обработан раньше TP1 - стоп обязан остаться на уровне TP1.
+        """TP2 обработан раньше TP1 - стоп обязан остаться в безубытке.
 
         Цена может прошить оба уровня в один тик; порядок событий Bybit не
         гарантирует. Раньше запоздавший TP1 стягивал стоп обратно в точку
@@ -276,23 +275,23 @@ class StopLossLadderTestCase(unittest.TestCase):
         """
         trade = self.make_trade()
 
-        trade.on_tp_filled(2)          # стоп -> 5% ниже TP2 (58900)
+        trade.on_tp_filled(2)          # стоп -> точка входа (60000)
         with self.assertLogs("trade_engine", level="WARNING") as logs:
-            trade.on_tp_filled(1)      # запоздавший TP1 просит вернуть в 57950
+            trade.on_tp_filled(1)      # запоздавший TP1 просит вернуть в 56400
 
         self.assertIn("оставляю стоп на месте", "\n".join(logs.output))
-        self.assertEqual(trade.current_sl, 58900.0, "стоп откатился назад")
-        self.assertEqual(self.moves, [58900.0], "на биржу ушёл лишний перенос стопа")
+        self.assertEqual(trade.current_sl, 60000.0, "стоп откатился назад")
+        self.assertEqual(self.moves, [60000.0], "на биржу ушёл лишний перенос стопа")
 
     def test_out_of_order_fills_for_short(self):
         """Для шорта «в сторону прибыли» - это вниз."""
         trade = self.make_trade("Short")
 
-        trade.on_tp_filled(2)          # стоп -> 5% выше TP2 (60900)
+        trade.on_tp_filled(2)          # стоп -> точка входа (60000)
         with self.assertLogs("trade_engine", level="WARNING"):
-            trade.on_tp_filled(1)      # запоздавший TP1 просит вернуть в 61950
+            trade.on_tp_filled(1)      # запоздавший TP1 просит вернуть в 63600
 
-        self.assertEqual(trade.current_sl, 60900.0)
+        self.assertEqual(trade.current_sl, 60000.0)
 
     def test_duplicate_fill_is_ignored(self):
         trade = self.make_trade()
@@ -300,7 +299,7 @@ class StopLossLadderTestCase(unittest.TestCase):
         trade.on_tp_filled(1)
         trade.on_tp_filled(1)
 
-        self.assertEqual(self.moves, [57950.0])
+        self.assertEqual(self.moves, [56400.0])
 
     def test_last_tp_does_not_move_stop(self):
         trade = self.make_trade()
@@ -308,6 +307,24 @@ class StopLossLadderTestCase(unittest.TestCase):
         trade.on_tp_filled(4)
 
         self.assertEqual(self.moves, [])
+
+
+class SourceRiskProfileTestCase(unittest.TestCase):
+    def test_ggshot_uses_15_usdt_and_20x(self):
+        trade = trade_engine.TradeManager(
+            dict(SIGNAL, parser="ggshot_v1"), notifier=lambda _t: None
+        )
+
+        self.assertEqual(trade.margin_usdt, 15.0)
+        self.assertEqual(trade.leverage, 20)
+
+    def test_fatpig_uses_10_usdt_and_10x(self):
+        trade = trade_engine.TradeManager(
+            dict(SIGNAL, parser="fatpig_v1"), notifier=lambda _t: None
+        )
+
+        self.assertEqual(trade.margin_usdt, 10.0)
+        self.assertEqual(trade.leverage, 10)
 
 
 class ValidateLevelsTestCase(unittest.TestCase):

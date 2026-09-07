@@ -2,12 +2,13 @@
 Торговый движок Bybit (pybit unified_trading).
 
 Перенесено и доработано из test_bit.py:
-- открытие маркет-ордером, объём = MARGIN_USDT * LEVERAGE (config.py)
+- открытие маркет-ордером, объём и плечо зависят от канала сигнала
 - начальный SL
 - реальные лимитные TP-ордера (reduce-only) на бирже - столько, сколько
   тейков пришло в сигнале (каналы дают и 4, и 6)
 - приватный WebSocket слушает исполнение ордеров:
-    каждый непоследний TP -> SL на 5% ниже/выше цены достигнутого TP,
+    TP1 -> SL на 6% хуже фактической цены входа,
+    TP2 -> SL точно в безубыток, TP3+ больше не двигают SL,
     последний TP закрывает позицию
 - автопереподключение WebSocket (watchdog по "тишине" в канале)
 
@@ -206,12 +207,18 @@ def calc_qty_from_margin(symbol: str, margin_usdt: float, leverage: float, price
 
 # ==================== УПРАВЛЕНИЕ ОДНОЙ СДЕЛКОЙ ====================
 class TradeManager:
+    SOURCE_RISK_PROFILES = {
+        "ggshot_v1": (15.0, 20),
+        "fatpig_v1": (10.0, 10),
+    }
+
     def __init__(self, signal: dict, notifier=None):
         self.symbol = signal["symbol"]
         self.strategy = signal["strategy"].lower()  # "long" / "short"
         self.targets = signal["targets"]             # [TP1, TP2, ...] - число зависит от канала
         self.initial_sl = signal["stop_loss"]
         self.signal_id = signal.get("signal_id")
+        self.parser_name = signal.get("parser")
 
         self.side = "Buy" if self.strategy == "long" else "Sell"
         self.close_side = "Sell" if self.side == "Buy" else "Buy"
@@ -228,11 +235,17 @@ class TradeManager:
 
         # Захватываются один раз при открытии, чтобы правки в веб-панели не
         # меняли параметры уже открытой сделки "на ходу"
-        self.margin_usdt = settings.get_margin_usdt()
-        self.leverage = settings.get_leverage()
+        self.margin_usdt, self.leverage = self._resolve_risk_profile()
         # Разбивка объёма: своя у формата сигнала (у каналов разное число
         # тейков), иначе глобальная из настроек
         self.tp_percents = self._resolve_tp_percents(signal.get("tp_percents"))
+
+    def _resolve_risk_profile(self) -> tuple[float, int]:
+        """Возвращает маржу и плечо для канала, сохраняя fallback настроек."""
+        profile = self.SOURCE_RISK_PROFILES.get(self.parser_name)
+        if profile is not None:
+            return profile
+        return settings.get_margin_usdt(), settings.get_leverage()
 
     def _resolve_tp_percents(self, from_signal) -> list:
         """Доли объёма по тейкам - ровно по одной на каждый тейк.
@@ -464,28 +477,33 @@ class TradeManager:
         logger.info(f"[{self.symbol}] TP{tp_index} исполнен")
 
         last = len(self.targets)
-        if tp_index < last:
-            # После каждого достигнутого тейка ставим стоп на 5% хуже цены
-            # именно этого тейка. События Bybit могут прийти не по порядку,
-            # поэтому запоздавший ранний TP не должен оттянуть стоп назад.
-            multiplier = 0.95 if self.side == "Buy" else 1.05
-            reached_tp = self.targets[tp_index - 1]
-            tp_stop = reached_tp * multiplier
-            later_tp_filled = any(index > tp_index for index in self.tp_filled)
+        if tp_index == 1:
+            # После TP1 оставляем позиции запас в 6% от фактической цены входа.
+            # Если более поздний TP уже обработан, запоздавший TP1 не должен
+            # ухудшить поставленный им безубыток.
+            multiplier = 0.94 if self.side == "Buy" else 1.06
+            tp1_stop = self.entry_price * multiplier
+            later_tp_filled = any(index > 1 for index in self.tp_filled)
             self.move_stop_loss(
-                tp_stop,
-                f"TP{tp_index} достигнут -> перенос на -5% от цены TP{tp_index}",
+                tp1_stop,
+                "TP1 достигнут -> перенос на -6% от цены входа",
                 allow_worse=not later_tp_filled,
             )
+        elif tp_index == 2:
+            self.move_stop_loss(
+                self.entry_price,
+                "TP2 достигнут -> перенос точно в безубыток",
+            )
+        # TP3 и последующие уровни стоп не двигают: он остаётся в безубытке.
         # последний TP: позиция закрыта целиком, двигать SL уже некуда
 
         price = self.targets[tp_index - 1]
         if tp_index < last:
-            # сообщаем фактический стоп, а не запрошенный: перенос могли
-            # отклонить как откат назад
+            # Сообщаем фактическое состояние: после TP3+ переноса уже нет,
+            # а запоздавший TP1 мог быть отклонён защитой от отката назад.
             self.notifier(
                 f"🎯 {self.symbol}: TP{tp_index} исполнен по {price}\n"
-                f"🔄 SL перенесён на {self.current_sl}"
+                f"🔒 SL сейчас: {self.current_sl}"
             )
         else:
             self.notifier(f"🎯 {self.symbol}: TP{tp_index} исполнен по {price}\n"
@@ -518,6 +536,7 @@ class TradeManager:
             "initial_sl": self.initial_sl,
             "current_sl": self.current_sl,
             "signal_id": self.signal_id,
+            "parser": self.parser_name,
             "entry_price": self.entry_price,
             "qty_total": format_qty(self.qty_total),
             "tp_qtys": [format_qty(q) for q in self.tp_qtys],
@@ -538,6 +557,7 @@ class TradeManager:
             "targets": data["targets"],
             "stop_loss": data["initial_sl"],
             "signal_id": data.get("signal_id"),
+            "parser": data.get("parser"),
             "timestamp": data.get("opened_at"),
             "opened_at_ms": data.get("opened_at_ms"),
             "tp_percents": data.get("tp_percents"),
