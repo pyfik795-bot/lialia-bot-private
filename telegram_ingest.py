@@ -157,6 +157,7 @@ class TelegramSignalIngestor:
 
             message_date = getattr(message, "date", None)
             signal["source_chat_id"] = chat_id
+            signal["source_channel"] = channels.get_title(chat_id)
             signal["source_message_id"] = message_id
             if message_date is not None:
                 if message_date.tzinfo is None:

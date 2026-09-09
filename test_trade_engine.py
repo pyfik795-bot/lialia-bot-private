@@ -107,6 +107,23 @@ class PositionEventTestCase(unittest.TestCase):
 
         self.assertEqual(restored.entry_price, 63390.1)
 
+    def test_source_survives_restart(self):
+        signal = dict(
+            SIGNAL,
+            parser="fatpig_v1",
+            source_chat_id=-100123,
+            source_channel="Fat Pig Signals",
+            source_message_id=456,
+        )
+        restored = trade_engine.TradeManager.from_dict(
+            trade_engine.TradeManager(signal).to_dict()
+        )
+
+        self.assertEqual(restored.parser_name, "fatpig_v1")
+        self.assertEqual(restored.source_chat_id, -100123)
+        self.assertEqual(restored.source_channel, "Fat Pig Signals")
+        self.assertEqual(restored.source_message_id, 456)
+
 
 class FakeSession:
     """Минимальная замена pybit.HTTP для проверки Emergency Stop."""
@@ -214,6 +231,26 @@ class EmergencyStopTestCase(unittest.TestCase):
         self.engine._on_trade_closed("BTCUSDT")
 
         self.assertEqual([r["close_reason"] for r in self.history()], ["стоп-лосс"])
+
+    def test_history_has_channel_tp_count_and_margin_roi(self):
+        self.trade.parser_name = "ggshot_v1"
+        self.trade.source_channel = "GG Shot"
+        self.trade.margin_usdt = 15.0
+        self.trade.tp_filled = {1, 2}
+        original_get_realized_pnl = trade_engine.get_realized_pnl
+        trade_engine.get_realized_pnl = lambda *_args: 3.0
+        self.addCleanup(
+            setattr, trade_engine, "get_realized_pnl", original_get_realized_pnl
+        )
+
+        self.engine._on_trade_closed("BTCUSDT")
+
+        record = self.history()[0]
+        self.assertEqual(record["source_channel"], "GG Shot")
+        self.assertEqual(record["tp_hit_count"], 2)
+        self.assertEqual(record["tp_total"], 4)
+        self.assertEqual(record["realized_pnl"], 3.0)
+        self.assertEqual(record["realized_pnl_percent"], 20.0)
 
 
 class StopLossLadderTestCase(unittest.TestCase):

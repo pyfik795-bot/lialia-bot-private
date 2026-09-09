@@ -68,12 +68,15 @@ class TelegramSignalIngestorTestCase(unittest.IsolatedAsyncioTestCase):
         )
         self.enabled_patch = patch("telegram_ingest.channels.get_enabled_ids", return_value={-1001})
         self.parser_patch = patch("telegram_ingest.channels.get_parser_name", return_value="fatpig_v1")
+        self.title_patch = patch("telegram_ingest.channels.get_title", return_value="Fat Pig Signals")
         self.log_patch = patch("telegram_ingest.signal_parser.log_parsed_signal")
         self.enabled_patch.start()
         self.parser_patch.start()
+        self.title_patch.start()
         self.log_mock = self.log_patch.start()
         self.addCleanup(self.enabled_patch.stop)
         self.addCleanup(self.parser_patch.stop)
+        self.addCleanup(self.title_patch.stop)
         self.addCleanup(self.log_patch.stop)
 
     async def test_fresh_message_is_processed_and_audited(self):
@@ -86,6 +89,7 @@ class TelegramSignalIngestorTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.engine.signals), 1)
         signal = self.engine.signals[0]
         self.assertEqual(signal["source_chat_id"], -1001)
+        self.assertEqual(signal["source_channel"], "Fat Pig Signals")
         self.assertEqual(signal["source_message_id"], 42)
         self.assertEqual(signal["source_message_date"], "2026-08-14T06:59:55+00:00")
         self.log_mock.assert_called_once()

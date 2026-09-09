@@ -219,6 +219,9 @@ class TradeManager:
         self.initial_sl = signal["stop_loss"]
         self.signal_id = signal.get("signal_id")
         self.parser_name = signal.get("parser")
+        self.source_chat_id = signal.get("source_chat_id")
+        self.source_channel = signal.get("source_channel")
+        self.source_message_id = signal.get("source_message_id")
 
         self.side = "Buy" if self.strategy == "long" else "Sell"
         self.close_side = "Sell" if self.side == "Buy" else "Buy"
@@ -226,7 +229,7 @@ class TradeManager:
         self.entry_price = None
         self.qty_total = Decimal("0")
         self.tp_qtys = []
-        self.tp_order_ids = {}   # order_id -> tp_index (1..4)
+        self.tp_order_ids = {}   # order_id -> tp_index (1..N)
         self.tp_filled = set()
         self.current_sl = self.initial_sl
         self.opened_at = signal.get("timestamp") or _time.strftime("%Y-%m-%d %H:%M:%S")
@@ -537,6 +540,9 @@ class TradeManager:
             "current_sl": self.current_sl,
             "signal_id": self.signal_id,
             "parser": self.parser_name,
+            "source_chat_id": self.source_chat_id,
+            "source_channel": self.source_channel,
+            "source_message_id": self.source_message_id,
             "entry_price": self.entry_price,
             "qty_total": format_qty(self.qty_total),
             "tp_qtys": [format_qty(q) for q in self.tp_qtys],
@@ -558,6 +564,9 @@ class TradeManager:
             "stop_loss": data["initial_sl"],
             "signal_id": data.get("signal_id"),
             "parser": data.get("parser"),
+            "source_chat_id": data.get("source_chat_id"),
+            "source_channel": data.get("source_channel"),
+            "source_message_id": data.get("source_message_id"),
             "timestamp": data.get("opened_at"),
             "opened_at_ms": data.get("opened_at_ms"),
             "tp_percents": data.get("tp_percents"),
@@ -1078,6 +1087,13 @@ class BotEngine:
         record["closed_at"] = _time.strftime("%Y-%m-%d %H:%M:%S")
         record["close_reason"] = reason
         record["realized_pnl"] = realized_pnl
+        record["realized_pnl_percent"] = (
+            round(realized_pnl / trade.margin_usdt * 100, 4)
+            if realized_pnl is not None and trade.margin_usdt
+            else None
+        )
+        record["tp_hit_count"] = len(trade.tp_filled)
+        record["tp_total"] = len(trade.targets)
         _append_json_list(config.TRADE_HISTORY_FILE, record)
 
         pnl_line = f"\nPnL: {realized_pnl:+.2f} USDT" if realized_pnl is not None else ""

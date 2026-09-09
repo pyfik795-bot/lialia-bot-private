@@ -110,6 +110,9 @@ class WebappTestCase(unittest.IsolatedAsyncioTestCase):
         html = await page.text()
         self.assertIn("Ляля mood", html)
         self.assertIn("/assets/lialia-1.jpeg", html)
+        self.assertIn("PnL / ROI от маржи", html)
+        self.assertIn("channelLabel(tr)", html)
+        self.assertNotIn("total = total || 4", html)
 
         for index in range(1, 5):
             with self.subTest(index=index):

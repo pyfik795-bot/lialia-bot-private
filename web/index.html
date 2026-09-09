@@ -1069,16 +1069,16 @@
 <section class="panel" id="positions">
   <h2>📈 Активные сделки</h2>
   <table>
-    <thead><tr><th>Символ</th><th>Сторона</th><th>Вход</th><th>SL</th><th>TP</th><th>Открыта</th></tr></thead>
-    <tbody id="active-body"><tr class="empty-row"><td colspan="6">Загрузка…</td></tr></tbody>
+    <thead><tr><th>Символ</th><th>Канал</th><th>Сторона</th><th>Вход</th><th>SL</th><th>TP</th><th>Открыта</th></tr></thead>
+    <tbody id="active-body"><tr class="empty-row"><td colspan="7">Загрузка…</td></tr></tbody>
   </table>
 </section>
 
 <section class="panel" id="history">
   <h2>📜 История сделок</h2>
   <table>
-    <thead><tr><th>Символ</th><th>Сторона</th><th>Вход</th><th>Причина закрытия</th><th>Закрыта</th></tr></thead>
-    <tbody id="history-body"><tr class="empty-row"><td colspan="5">Загрузка…</td></tr></tbody>
+    <thead><tr><th>Символ</th><th>Канал</th><th>Сторона</th><th>TP</th><th>PnL / ROI от маржи</th><th>Причина закрытия</th><th>Закрыта</th></tr></thead>
+    <tbody id="history-body"><tr class="empty-row"><td colspan="7">Загрузка…</td></tr></tbody>
   </table>
 </section>
 
@@ -1261,8 +1261,8 @@ function sideLabel(side) {
 
 function tpPips(filled, total) {
   filled = filled || [];
-  // число тейков зависит от канала: у одних 4, у других 6
-  total = total || 4;
+  // Не рисуем выдуманные четыре тейка для старой/неполной записи.
+  total = Number.isInteger(total) && total > 0 ? total : 0;
   let html = '<div class="tp-pips">';
   for (let i = 1; i <= total; i++) {
     html += `<span class="pip ${filled.includes(i) ? "hit" : ""}" title="TP${i}"></span>`;
@@ -1270,16 +1270,36 @@ function tpPips(filled, total) {
   return html + "</div>";
 }
 
+function channelLabel(trade) {
+  if (trade.source_channel) return trade.source_channel;
+  if (trade.parser === "ggshot_v1") return "GG Shot";
+  if (trade.parser === "fatpig_v1") return "Fat Pig";
+  return "—";
+}
+
+function pnlLabel(trade) {
+  if (typeof trade.realized_pnl !== "number") return "—";
+  const usd = `${trade.realized_pnl >= 0 ? "+" : ""}${fmt(trade.realized_pnl)} USDT`;
+  let roiValue = trade.realized_pnl_percent;
+  if (typeof roiValue !== "number" && typeof trade.margin_usdt === "number" && trade.margin_usdt) {
+    roiValue = trade.realized_pnl / trade.margin_usdt * 100;
+  }
+  if (typeof roiValue !== "number") return usd;
+  const roi = `${roiValue >= 0 ? "+" : ""}${fmt(roiValue)}%`;
+  return `${usd}<br><span class="metric-label">${roi}</span>`;
+}
+
 async function refreshTrades() {
   try {
     const t = await getJSON("/api/trades");
     const activeBody = document.getElementById("active-body");
     if (!t.active.length) {
-      activeBody.innerHTML = '<tr class="empty-row"><td colspan="6">Сейчас нет открытых сделок</td></tr>';
+      activeBody.innerHTML = '<tr class="empty-row"><td colspan="7">Сейчас нет открытых сделок</td></tr>';
     } else {
       activeBody.innerHTML = t.active.map(tr => `
         <tr>
           <td>${tr.symbol}</td>
+          <td>${escapeHtml(channelLabel(tr))}</td>
           <td>${sideLabel(tr.side)}</td>
           <td>${tr.entry_price ?? "—"}</td>
           <td>${tr.current_sl ?? "—"}</td>
@@ -1290,13 +1310,15 @@ async function refreshTrades() {
 
     const historyBody = document.getElementById("history-body");
     if (!t.history.length) {
-      historyBody.innerHTML = '<tr class="empty-row"><td colspan="5">Пока пусто</td></tr>';
+      historyBody.innerHTML = '<tr class="empty-row"><td colspan="7">Пока пусто</td></tr>';
     } else {
       historyBody.innerHTML = t.history.map(tr => `
         <tr>
           <td>${tr.symbol}</td>
+          <td>${escapeHtml(channelLabel(tr))}</td>
           <td>${sideLabel(tr.side)}</td>
-          <td>${tr.entry_price ?? "—"}</td>
+          <td>${tr.tp_hit_count ?? (tr.tp_filled || []).length}/${tr.tp_total ?? (tr.targets || []).length}</td>
+          <td>${pnlLabel(tr)}</td>
           <td>${tr.close_reason ?? "—"}</td>
           <td>${tr.closed_at ?? "—"}</td>
         </tr>`).join("");

@@ -110,6 +110,35 @@ class TgBotTestCase(unittest.TestCase):
     def test_no_trades_message(self):
         self.assertIn("нет открытых", self.tg.format_current_trades())
 
+    def test_history_shows_channel_variable_targets_and_pnl_roi(self):
+        self.write(config.TRADE_HISTORY_FILE, [self.make_trade(
+            targets=[1, 2, 3, 4, 5, 6],
+            tp_filled=[1, 2, 3],
+            tp_hit_count=3,
+            tp_total=6,
+            source_channel="Fat Pig Signals",
+            realized_pnl=2.5,
+            realized_pnl_percent=25.0,
+            close_reason="стоп-лосс",
+            closed_at="2026-09-09 12:00:00",
+        )])
+
+        text = self.tg.format_all_trades()
+
+        self.assertIn("канал Fat Pig Signals", text)
+        self.assertIn("TP 3/6", text)
+        self.assertIn("PnL +2.50 USDT (+25.00%)", text)
+
+    def test_history_calculates_roi_for_legacy_record(self):
+        self.write(config.TRADE_HISTORY_FILE, [self.make_trade(
+            realized_pnl=5.0,
+            source_channel="GG Shot",
+            close_reason="стоп-лосс",
+            closed_at="2026-09-09 12:00:00",
+        )])
+
+        self.assertIn("PnL +5.00 USDT (+10.00%)", self.tg.format_all_trades())
+
     def test_overview_contains_dashboard_summary(self):
         self.write(config.ACTIVE_TRADES_FILE, [self.make_trade()])
         text = self.tg._format_overview({

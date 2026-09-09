@@ -208,8 +208,26 @@ def format_all_trades() -> str:
     if history:
         lines.append("\n📜 История:")
         for t in reversed(history[-20:]):
+            channel = t.get("source_channel") or {
+                "ggshot_v1": "GG Shot",
+                "fatpig_v1": "Fat Pig",
+            }.get(t.get("parser"), "неизвестно")
+            hit = t.get("tp_hit_count", len(t.get("tp_filled", [])))
+            total = t.get("tp_total", len(t.get("targets", [])))
+            pnl = t.get("realized_pnl")
+            roi = t.get("realized_pnl_percent")
+            if not isinstance(roi, (int, float)) and isinstance(pnl, (int, float)):
+                margin = t.get("margin_usdt")
+                if isinstance(margin, (int, float)) and margin:
+                    roi = pnl / margin * 100
+            pnl_text = "PnL не получен"
+            if isinstance(pnl, (int, float)):
+                pnl_text = f"PnL {pnl:+.2f} USDT"
+                if isinstance(roi, (int, float)):
+                    pnl_text += f" ({roi:+.2f}%)"
             lines.append(f"  {t['symbol']} {_direction_label(t['side'])} — {t.get('close_reason', '?')} "
-                          f"(вход {t['entry_price']}, закрыта {t.get('closed_at', '?')})")
+                          f"(канал {channel}, TP {hit}/{total}, {pnl_text}, "
+                          f"вход {t['entry_price']}, закрыта {t.get('closed_at', '?')})")
 
     return "\n".join(lines)
 

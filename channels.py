@@ -51,6 +51,14 @@ def get_parser_name(chat_id: int) -> str | None:
     return None
 
 
+def get_title(chat_id: int) -> str:
+    """Стабильная подпись источника для карточки и истории сделки."""
+    for channel in get_all():
+        if channel["chat_id"] == chat_id:
+            return channel.get("title") or channel.get("username") or str(chat_id)
+    return str(chat_id)
+
+
 def set_parser(chat_id: int, parser_name: str | None) -> None:
     """Привязывает формат сообщений к каналу (или снимает привязку)."""
     with _lock:
