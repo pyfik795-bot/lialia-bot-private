@@ -7,6 +7,7 @@
 """
 
 import unittest
+from pathlib import Path
 
 from aiohttp.test_utils import TestClient, TestServer
 
@@ -153,6 +154,20 @@ class SecretComparisonTestCase(unittest.TestCase):
 
     def test_mixed_ascii_and_cyrillic(self):
         self.assertFalse(webapp._same_secret("abc", "абв"))
+
+
+class LanDashboardConfigTestCase(unittest.TestCase):
+    def test_compose_publishes_dashboard_to_lan(self):
+        compose = Path("compose.yaml").read_text(encoding="utf-8")
+
+        self.assertIn("${LIALIA_WEB_BIND:-0.0.0.0}", compose)
+        self.assertNotIn('127.0.0.1:${LIALIA_WEB_PORT', compose)
+
+    def test_firewall_rule_is_limited_to_private_local_subnet(self):
+        script = Path("enable-lan-dashboard.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("-Profile Private", script)
+        self.assertIn("-RemoteAddress LocalSubnet", script)
 
 
 if __name__ == "__main__":

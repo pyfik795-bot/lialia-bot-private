@@ -528,7 +528,7 @@ docker compose logs --tail=100 app</code></pre>
           </div>
           <div class="callout success"><strong>Нормальный результат:</strong> контейнер <span class="mono">lialia-bot</span> имеет состояние Running, в Telegram пришло уведомление о старте.</div>
           <h3>Открытие панели</h3>
-          <p>На самом сервере откройте браузер и перейдите по адресу <a href="http://localhost:8080">http://localhost:8080</a>. Панель специально недоступна из интернета и локальной сети.</p>
+          <p>На самом сервере откройте браузер и перейдите по адресу <a href="http://localhost:8080">http://localhost:8080</a>. Из домашней сети панель доступна по адресу <span class="mono">http://ИМЯ-СЕРВЕРА:8080</span>. Не пробрасывайте этот порт на роутере в интернет.</p>
           <h3>Контроль после переноса</h3>
           <div class="checklist" data-checklist="verify">
             <label class="check"><input type="checkbox">На сайте верно показан режим DEMO или REAL.</label>
@@ -549,11 +549,14 @@ docker image load --input .\docker-images.tar
 docker compose up -d --no-build
 docker compose ps</code></pre>
           </div>
-          <p>Панель: <a href="http://localhost:8080">http://localhost:8080</a>. Если PowerShell-скрипт открывается в блокноте, запускайте его явно:</p>
+          <p>Панель на сервере: <a href="http://localhost:8080">http://localhost:8080</a>. Чтобы открыть её с основного ПК, один раз разрешите доступ из частной локальной сети:</p>
           <div class="code-wrap">
             <div class="code-head">PowerShell <button class="copy" type="button">Копировать</button></div>
-            <pre><code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\prepare-docker.ps1"</code></pre>
+            <pre><code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\prepare-docker.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\enable-lan-dashboard.ps1"
+docker compose up -d --force-recreate</code></pre>
           </div>
+          <p>На основном ПК откройте <span class="mono">http://DESKTOP-GQRB9KI:8080</span>. Оба ПК должны находиться в одной сети с профилем «Частная».</p>
         </section>
 
         <section id="daily">
@@ -604,7 +607,7 @@ docker compose start app</code></pre>
           <table>
             <thead><tr><th>Симптом</th><th>Что проверить</th></tr></thead>
             <tbody>
-              <tr><td>Сайт не открывается</td><td>Открывайте его на самом сервере. Выполните <span class="mono">docker compose ps</span> и <span class="mono">docker compose logs --tail=200 app</span>.</td></tr>
+              <tr><td>Сайт не открывается</td><td>Выполните <span class="mono">docker compose ps</span> и <span class="mono">docker compose logs --tail=200 app</span>. Для доступа с другого ПК проверьте частный профиль сети и запустите <span class="mono">enable-lan-dashboard.ps1</span> от администратора.</td></tr>
               <tr><td>Telegram сообщает Conflict</td><td>Где-то работает второй экземпляр с тем же токеном. Остановите старый ПК или контейнер.</td></tr>
               <tr><td>Кнопки Telegram не появились</td><td>Отправьте боту <span class="mono">/start</span>. Проверьте журнал приложения.</td></tr>
               <tr><td>Не приходят сигналы</td><td>Проверьте HAPP, затем <span class="mono">docker compose logs --tail=200 app</span>, авторизацию Telegram и список каналов в панели.</td></tr>

@@ -12,6 +12,7 @@ if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
 }
 
 $Lines = @(
+    "LIALIA_WEB_BIND=0.0.0.0"
     "LIALIA_WEB_PORT=$WebPort"
     "TZ=Europe/Moscow"
 )
@@ -29,3 +30,4 @@ Set-Content -Encoding ASCII -LiteralPath $EnvPath -Value $Lines
 Write-Host "Ready: created $EnvPath"
 Write-Host "Start: docker compose up -d --build"
 Write-Host "Dashboard: http://localhost:$WebPort"
+Write-Host "LAN access: run enable-lan-dashboard.ps1 as Administrator once"
