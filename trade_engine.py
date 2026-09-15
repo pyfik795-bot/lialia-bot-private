@@ -205,14 +205,37 @@ def calc_qty_from_margin(symbol: str, margin_usdt: float, leverage: float, price
     return qty
 
 
+def calc_margin_from_risk(equity_usdt: float, risk_percent: float, price: float,
+                          stop_loss: float, leverage: float) -> float:
+    """Return margin whose loss at the initial stop is ``risk_percent`` of equity.
+
+    Leverage changes the required margin, not the loss between entry and stop.
+    The calculation therefore sizes notional first and divides it by leverage.
+    """
+    if equity_usdt <= 0 or not 0 < risk_percent <= 5:
+        raise ValueError("equity and risk percent must be positive")
+    if price <= 0 or stop_loss <= 0 or leverage <= 0:
+        raise ValueError("price, stop and leverage must be positive")
+
+    stop_distance = abs(price - stop_loss) / price
+    if stop_distance <= 0:
+        raise ValueError("stop loss must differ from entry price")
+
+    risk_usdt = equity_usdt * risk_percent / 100.0
+    notional = risk_usdt / stop_distance
+    return notional / leverage
+
+
 # ==================== УПРАВЛЕНИЕ ОДНОЙ СДЕЛКОЙ ====================
 class TradeManager:
     SOURCE_RISK_PROFILES = {
         "ggshot_v1": (15.0, 20),
         "fatpig_v1": (10.0, 10),
     }
+    EXPERIMENTAL_RISK_PERCENT = 1.0
+    MAX_MARGIN_SHARE_PERCENT = 25.0
 
-    def __init__(self, signal: dict, notifier=None):
+    def __init__(self, signal: dict, notifier=None, equity_usdt: float | None = None):
         self.symbol = signal["symbol"]
         self.strategy = signal["strategy"].lower()  # "long" / "short"
         self.targets = signal["targets"]             # [TP1, TP2, ...] - число зависит от канала
@@ -222,6 +245,8 @@ class TradeManager:
         self.source_chat_id = signal.get("source_chat_id")
         self.source_channel = signal.get("source_channel")
         self.source_message_id = signal.get("source_message_id")
+        self.entry_zone = signal.get("entry_zone")
+        self.equity_usdt = equity_usdt
 
         self.side = "Buy" if self.strategy == "long" else "Sell"
         self.close_side = "Sell" if self.side == "Buy" else "Buy"
@@ -313,6 +338,8 @@ class TradeManager:
         self.initial_sl = scaled_sl
         self.current_sl = scaled_sl
         self.targets = scaled_targets
+        if self.entry_zone:
+            self.entry_zone = [float(value) * 1_000 for value in self.entry_zone]
         logger.warning(
             "[%s] Точка распознана как разделитель тысяч: уровни %s -> SL %s, TP %s",
             self.symbol,
@@ -343,23 +370,43 @@ class TradeManager:
                 f"стоп-лосс {self.initial_sl} с неверной стороны от цены {price} "
                 f"для {self.strategy} - сигнал разобран неправильно"
             )
-        if len(passed) == len(self.targets):
-            raise ValueError(
-                f"все тейки {self.targets} уже пройдены ценой {price} - "
-                f"сигнал устарел или разобран неправильно"
-            )
         if passed:
-            # рынок ушёл вперёд: часть тейков закроется сразу по входу.
-            # Это не повод пропускать сделку, но знать об этом надо
-            logger.warning(f"[{self.symbol}] Тейки {passed} уже пройдены ценой {price} - "
-                           f"эта часть позиции закроется сразу")
+            raise ValueError(
+                f"тейк TP1 или более поздний уровень уже пройден ценой {price}: {passed} - "
+                f"запоздалый сигнал пропущен"
+            )
+
+        if self.entry_zone:
+            low, high = sorted(float(value) for value in self.entry_zone)
+            if not low <= price <= high:
+                raise ValueError(
+                    f"цена {price} вне зоны входа {low}-{high} - рынок не догоняю"
+                )
 
     def open_position(self):
         self.set_leverage()
         price = self.get_last_price()
         self.repair_thousands_separator(price)
         self.validate_levels(price)
+        if self.equity_usdt is not None:
+            risk_sized_margin = calc_margin_from_risk(
+                self.equity_usdt,
+                self.EXPERIMENTAL_RISK_PERCENT,
+                price,
+                self.initial_sl,
+                self.leverage,
+            )
+            margin_cap = self.equity_usdt * self.MAX_MARGIN_SHARE_PERCENT / 100.0
+            self.margin_usdt = min(risk_sized_margin, margin_cap)
         self.qty_total = calc_qty_from_margin(self.symbol, self.margin_usdt, self.leverage, price)
+        if self.equity_usdt is not None:
+            actual_stop_risk = float(self.qty_total) * abs(price - self.initial_sl)
+            risk_limit = self.equity_usdt * self.EXPERIMENTAL_RISK_PERCENT / 100.0
+            if actual_stop_risk > risk_limit * 1.25:
+                raise ValueError(
+                    f"минимальный объём биржи даёт риск {actual_stop_risk:.4f} USDT, "
+                    f"что выше лимита {risk_limit:.4f} USDT"
+                )
         notional = self.margin_usdt * self.leverage
 
         logger.info(f"[{self.symbol}] Открываю {self.side} маркет-ордером, "
@@ -486,11 +533,9 @@ class TradeManager:
             # ухудшить поставленный им безубыток.
             multiplier = 0.94 if self.side == "Buy" else 1.06
             tp1_stop = self.entry_price * multiplier
-            later_tp_filled = any(index > 1 for index in self.tp_filled)
             self.move_stop_loss(
                 tp1_stop,
-                "TP1 достигнут -> перенос на -6% от цены входа",
-                allow_worse=not later_tp_filled,
+                "TP1 достигнут -> защитный уровень в 6% от цены входа, только если он лучше",
             )
         elif tp_index == 2:
             self.move_stop_loss(
@@ -543,6 +588,8 @@ class TradeManager:
             "source_chat_id": self.source_chat_id,
             "source_channel": self.source_channel,
             "source_message_id": self.source_message_id,
+            "entry_zone": self.entry_zone,
+            "equity_usdt": self.equity_usdt,
             "entry_price": self.entry_price,
             "qty_total": format_qty(self.qty_total),
             "tp_qtys": [format_qty(q) for q in self.tp_qtys],
@@ -567,11 +614,12 @@ class TradeManager:
             "source_chat_id": data.get("source_chat_id"),
             "source_channel": data.get("source_channel"),
             "source_message_id": data.get("source_message_id"),
+            "entry_zone": data.get("entry_zone"),
             "timestamp": data.get("opened_at"),
             "opened_at_ms": data.get("opened_at_ms"),
             "tp_percents": data.get("tp_percents"),
         }
-        trade = cls(signal, notifier=notifier)
+        trade = cls(signal, notifier=notifier, equity_usdt=data.get("equity_usdt"))
         trade.entry_price = data.get("entry_price")
         trade.qty_total = Decimal(data.get("qty_total", "0"))
         trade.tp_qtys = [Decimal(q) for q in data.get("tp_qtys", [])]
@@ -820,9 +868,11 @@ class BotEngine:
         with self._lock:
             open_count = len(self.trades)
 
-        equity = None
-        if risk.get_settings().get("daily_loss_percent_enabled"):
-            equity = get_wallet_balance().get("equity") or None
+        equity = get_wallet_balance().get("equity") or None
+        if equity is None:
+            logger.warning(f"[{symbol}] Не удалось получить equity для расчёта риска - сигнал пропущен")
+            self.notify(f"🛡 Сигнал {symbol} отклонён: нет equity для расчёта размера позиции")
+            return
 
         allowed, reason = risk.check_can_open(symbol, open_count, equity)
         if not allowed:
@@ -835,7 +885,7 @@ class BotEngine:
                 logger.info(f"[{symbol}] По символу уже есть активная сделка, новый сигнал игнорируется")
                 return
             # регистрируем сразу под локом, чтобы параллельные сигналы не открыли дубль
-            trade = TradeManager(signal, notifier=self.notify)
+            trade = TradeManager(signal, notifier=self.notify, equity_usdt=equity)
             self.trades[symbol] = trade
 
         try:

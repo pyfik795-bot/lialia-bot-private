@@ -292,16 +292,26 @@ class StopLossLadderTestCase(unittest.TestCase):
         trade.on_tp_filled(2)
         trade.on_tp_filled(3)
 
-        self.assertEqual(self.moves, [56400.0, 60000.0])
+        self.assertEqual(self.moves, [60000.0])
         self.assertEqual(trade.current_sl, 60000.0)
 
-    def test_tp1_moves_short_stop_six_percent_above_entry(self):
+    def test_tp1_never_worsens_short_stop(self):
         trade = self.make_trade("Short")
 
         trade.on_tp_filled(1)
 
-        self.assertEqual(self.moves, [63600.0])
-        self.assertEqual(trade.current_sl, 63600.0)
+        self.assertEqual(self.moves, [])
+        self.assertEqual(trade.current_sl, 62000.0)
+
+    def test_tp1_applies_six_percent_buffer_when_it_improves_long_stop(self):
+        trade = self.make_trade()
+        trade.initial_sl = 55000.0
+        trade.current_sl = 55000.0
+
+        trade.on_tp_filled(1)
+
+        self.assertEqual(self.moves, [56400.0])
+        self.assertEqual(trade.current_sl, 56400.0)
 
     def test_out_of_order_fills_never_pull_stop_back(self):
         """TP2 обработан раньше TP1 - стоп обязан остаться в безубытке.
@@ -336,7 +346,7 @@ class StopLossLadderTestCase(unittest.TestCase):
         trade.on_tp_filled(1)
         trade.on_tp_filled(1)
 
-        self.assertEqual(self.moves, [56400.0])
+        self.assertEqual(self.moves, [])
 
     def test_last_tp_does_not_move_stop(self):
         trade = self.make_trade()
@@ -399,15 +409,44 @@ class ValidateLevelsTestCase(unittest.TestCase):
 
         with self.assertRaises(ValueError) as ctx:
             trade.validate_levels(65000.0)
-        self.assertIn("тейки", str(ctx.exception))
+        self.assertIn("тейк", str(ctx.exception))
 
-    def test_partially_passed_targets_still_open(self):
-        """Рынок ушёл за TP1 - сделку берём, но предупреждаем."""
+    def test_partially_passed_targets_are_rejected(self):
+        """Рынок ушёл за TP1 - запоздалую сделку не догоняем."""
         trade = self.make_trade()
 
-        with self.assertLogs("trade_engine", level="WARNING") as logs:
+        with self.assertRaises(ValueError) as ctx:
             trade.validate_levels(61500.0)
-        self.assertIn("уже пройдены", "\n".join(logs.output))
+        self.assertIn("запоздалый", str(ctx.exception))
+
+    def test_price_outside_entry_zone_is_rejected(self):
+        trade = self.make_trade(entry_zone=[59500.0, 60500.0])
+
+        with self.assertRaises(ValueError) as ctx:
+            trade.validate_levels(60600.0)
+        self.assertIn("вне зоны входа", str(ctx.exception))
+
+    def test_price_inside_entry_zone_passes(self):
+        self.make_trade(entry_zone=[59500.0, 60500.0]).validate_levels(60000.0)
+
+
+class RiskSizedPositionTestCase(unittest.TestCase):
+    def test_margin_targets_one_percent_equity_loss_at_stop(self):
+        margin = trade_engine.calc_margin_from_risk(
+            equity_usdt=60.0,
+            risk_percent=1.0,
+            price=100.0,
+            stop_loss=95.0,
+            leverage=10.0,
+        )
+
+        self.assertAlmostEqual(margin, 1.2)
+
+    def test_leverage_changes_margin_not_loss_budget(self):
+        low = trade_engine.calc_margin_from_risk(60.0, 1.0, 100.0, 95.0, 10.0)
+        high = trade_engine.calc_margin_from_risk(60.0, 1.0, 100.0, 95.0, 20.0)
+
+        self.assertAlmostEqual(low, high * 2)
 
     def test_dotted_thousands_are_repaired_for_btc(self):
         signal = {
