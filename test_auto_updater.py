@@ -54,6 +54,12 @@ class AutoUpdaterTestCase(unittest.TestCase):
         self.assertEqual(result, auto_updater.UP_TO_DATE)
         self.assertEqual((self.work / "version.txt").read_text(encoding="utf-8"), "v1")
 
+    def test_experimental_branch_is_not_updated_from_main(self):
+        git(self.work, "checkout", "-b", "test/strategy")
+        self.push_version("v2")
+        self.assertEqual(auto_updater.check_and_update(self.work), auto_updater.SKIPPED)
+        self.assertEqual((self.work / "version.txt").read_text(encoding="utf-8"), "v1")
+
     def test_fast_forward_update_is_applied(self):
         self.push_version("v2")
 

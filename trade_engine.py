@@ -252,6 +252,7 @@ class TradeManager:
         self.close_side = "Sell" if self.side == "Buy" else "Buy"
 
         self.entry_price = None
+        self.entry_submitted = False
         self.qty_total = Decimal("0")
         self.tp_qtys = []
         self.tp_order_ids = {}   # order_id -> tp_index (1..N)
@@ -384,7 +385,6 @@ class TradeManager:
                 )
 
     def open_position(self):
-        self.set_leverage()
         price = self.get_last_price()
         self.repair_thousands_separator(price)
         self.validate_levels(price)
@@ -402,7 +402,7 @@ class TradeManager:
         if self.equity_usdt is not None:
             actual_stop_risk = float(self.qty_total) * abs(price - self.initial_sl)
             risk_limit = self.equity_usdt * self.EXPERIMENTAL_RISK_PERCENT / 100.0
-            if actual_stop_risk > risk_limit * 1.25:
+            if actual_stop_risk > risk_limit + 1e-9:
                 raise ValueError(
                     f"минимальный объём биржи даёт риск {actual_stop_risk:.4f} USDT, "
                     f"что выше лимита {risk_limit:.4f} USDT"
@@ -413,6 +413,12 @@ class TradeManager:
                     f"qty={self.qty_total} (маржа {self.margin_usdt} USDT x плечо {self.leverage} "
                     f"= объём ~{notional} USDT по цене ~{price})")
 
+        stop_price = round_price(self.symbol, self.initial_sl)
+        positions = get_session().get_positions(category=config.CATEGORY, symbol=self.symbol)
+        if any(Decimal(str(p.get("size") or "0")) > 0 for p in positions["result"]["list"]):
+            raise ValueError("на бирже уже есть позиция по символу; добавление запрещено")
+        self.set_leverage()
+        self.entry_submitted = True
         resp = get_session().place_order(
             category=config.CATEGORY,
             symbol=self.symbol,
@@ -421,6 +427,9 @@ class TradeManager:
             qty=format_qty(self.qty_total),
             timeInForce="IOC",
             positionIdx=0,
+            stopLoss=stop_price,
+            slTriggerBy="LastPrice",
+            tpslMode="Full",
         )
         logger.info(f"[{self.symbol}] Ответ на открытие позиции: {resp}")
 
@@ -901,7 +910,7 @@ class BotEngine:
             # Вход мог уже пройти - тогда на бирже висит позиция с плечом,
             # без стоп-лосса и без тейков, и вести её уже некому.
             # Оставлять такое нельзя: закрываем по рынку.
-            closed = self._close_after_failure(trade)
+            closed = self._close_after_failure(trade) if trade.entry_submitted else False
             with self._lock:
                 self.trades.pop(symbol, None)
             if closed:

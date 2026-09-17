@@ -112,6 +112,9 @@ def check_and_update(
         return _failure(project, "папка не является Git-клоном")
 
     try:
+        current_branch = _git(project, "symbolic-ref", "--quiet", "--short", "HEAD")
+        if current_branch.returncode != 0 or current_branch.stdout.strip() != branch:
+            return _failure(project, "текущая ветка не совпадает с веткой обновления")
         head = _git(project, "rev-parse", "HEAD")
         if head.returncode != 0:
             return _failure(project, "не удалось прочитать текущую версию", head)
